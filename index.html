@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Labrador Lernapp</title>
+<style>
+body{font-family:Arial;background:#f4f6f8;margin:0;padding:15px}
+.card{background:#fff;max-width:700px;margin:auto;padding:20px;border-radius:14px;box-shadow:0 8px 20px rgba(0,0,0,.15)}
+button{width:100%;padding:12px;margin:6px 0;border:0;border-radius:8px;font-size:16px;background:#e7edf5}
+.correct{background:#b9f6ca!important}
+.wrong{background:#ffb3b3!important}
+#next{background:#16a34a;color:#fff}
+</style>
+</head>
+<body>
+
+<div class="card">
+<h2 id="q">Frage lädt...</h2>
+<div id="answers"></div>
+<button id="next">Nächste Frage</button>
+<p id="score"></p>
+</div>
+
+<script>
+const questions=[
+{q:"Trächtigkeit der Hündin dauert im Mittel …",a:["56 Tage","63 Tage","70 Tage"],c:1},
+{q:"Standhitze ist im …",a:["Proöstrus","Östrus","Anöstrus"],c:1},
+{q:"HD ist genetisch …",a:["dominant","rezessiv","polygen/multifaktoriell"],c:2},
+{q:"prcd-PRA wird vererbt …",a:["dominant","autosomal-rezessiv","X-chromosomal"],c:1},
+{q:"Kolostrum liefert …",a:["Fett","Antikörper","Zucker"],c:1}
+];
+
+let i=0,score=0,answered=false;
+const q=document.getElementById("q");
+const aDiv=document.getElementById("answers");
+const s=document.getElementById("score");
+
+function load(){
+answered=false;
+const item=questions[i];
+q.textContent=item.q;
+aDiv.innerHTML="";
+item.a.forEach((t,idx)=>{
+const b=document.createElement("button");
+b.textContent=t;
+b.onclick=()=>check(idx,b);
+aDiv.appendChild(b);
+});
+s.textContent=`Punkte: ${score}`;
+}
+
+function check(idx,btn){
+if(answered)return;
+answered=true;
+const item=questions[i];
+[...aDiv.children].forEach((b,k)=>{
+b.disabled=true;
+if(k===item.c)b.classList.add("correct");
+});
+if(idx===item.c)score++;
+else btn.classList.add("wrong");
+}
+
+document.getElementById("next").onclick=()=>{
+i++;
+if(i>=questions.length){alert(`Fertig! ${score}/${questions.length}`);i=0;score=0;}
+load();
+};
+
+load();
+</script>
+
+</body>
+</html>
