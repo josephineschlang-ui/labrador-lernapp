@@ -1,75 +1,598 @@
 <!doctype html>
 <html lang="de">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Labrador Lernapp</title>
-<style>
-body{font-family:Arial;background:#f4f6f8;margin:0;padding:15px}
-.card{background:#fff;max-width:700px;margin:auto;padding:20px;border-radius:14px;box-shadow:0 8px 20px rgba(0,0,0,.15)}
-button{width:100%;padding:12px;margin:6px 0;border:0;border-radius:8px;font-size:16px;background:#e7edf5}
-.correct{background:#b9f6ca!important}
-.wrong{background:#ffb3b3!important}
-#next{background:#16a34a;color:#fff}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#16a34a" />
+  <title>Labrador Lernapp</title>
+  <style>
+    :root{--bg:#f4f6f8;--card:#fff;--text:#0f172a;--muted:#475569;--btn:#e7edf5;--btn2:#334155;--ok:#b9f6ca;--bad:#ffb3b3;--accent:#16a34a;--warn:#fff3cd;}
+    *{box-sizing:border-box;}
+    body{margin:0;padding:16px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;justify-content:center;align-items:flex-start;}
+    .wrap{width:min(980px,100%);}
+    .card{background:var(--card);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.12);padding:16px;margin-bottom:14px;}
+    h1{margin:0 0 6px 0;font-size:22px;}
+    .sub{color:var(--muted);font-size:14px;margin:0;}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+    .row>*{flex:1;min-width:180px;}
+    label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px;}
+    select,input[type="text"],input[type="number"]{width:100%;padding:12px;border-radius:12px;border:1px solid #d9e1ec;background:#fff;font-size:15px;}
+    .btn{width:100%;padding:12px;border-radius:12px;border:0;background:var(--btn);font-size:15px;cursor:pointer;}
+    .btn.primary{background:var(--accent);color:#fff;}
+    .btn.dark{background:var(--btn2);color:#fff;}
+    .btn:disabled{opacity:.6;cursor:not-allowed;}
+    .meta{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
+    .pill{display:inline-flex;gap:8px;align-items:center;background:#eef2f7;color:var(--muted);padding:8px 10px;border-radius:999px;font-size:13px;}
+    .q{font-size:18px;line-height:1.3;margin:0 0 12px 0;}
+    .answers button{width:100%;text-align:left;padding:14px 12px;margin:8px 0;border:0;border-radius:12px;background:var(--btn);cursor:pointer;font-size:15px;}
+    .answers button:active{transform:scale(.995);}
+    .correct{background:var(--ok)!important;}
+    .wrong{background:var(--bad)!important;}
+    .hint{background:var(--warn);border-radius:12px;padding:10px 12px;color:#1f2937;display:none;margin-top:10px;font-size:14px;line-height:1.35;}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+    @media (max-width:720px){.grid2{grid-template-columns:1fr;}}
+    .small{font-size:12px;color:var(--muted);}
+    .hr{height:1px;background:#e7edf5;margin:12px 0;}
+    .table{width:100%;border-collapse:collapse;font-size:14px;}
+    .table th,.table td{border-bottom:1px solid #e7edf5;padding:10px 6px;text-align:left;vertical-align:top;}
+    .right{text-align:right;}
+    .tag{font-size:12px;color:#0f172a;background:#e2e8f0;padding:2px 8px;border-radius:999px;display:inline-block;}
+    details>summary{cursor:pointer;color:var(--muted);}
+  </style>
 </head>
 <body>
+<div class="wrap">
 
-<div class="card">
-<h2 id="q">Frage lädt...</h2>
-<div id="answers"></div>
-<button id="next">Nächste Frage</button>
-<p id="score"></p>
-</div>
+  <div class="card">
+    <h1>Labrador Lernapp</h1>
+    <p class="sub">Alle Fragen aus deinen Kapiteln · Lernmodus + Prüfungsmodus · Mehrbenutzer · Fortschritt gespeichert (Browser)</p>
+  </div>
+
+  <div class="card" id="userCard">
+    <div class="row">
+      <div>
+        <label>Benutzer</label>
+        <select id="userSelect"></select>
+      </div>
+      <div>
+        <label>Neuen Benutzer anlegen</label>
+        <input id="newUser" type="text" placeholder="z.B. Max" />
+      </div>
+      <div>
+        <label>&nbsp;</label>
+        <button class="btn primary" id="addUserBtn">Benutzer hinzufügen</button>
+      </div>
+      <div>
+        <label>&nbsp;</label>
+        <button class="btn dark" id="deleteUserBtn">Benutzer löschen</button>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="grid2">
+      <div class="card" style="box-shadow:none;border:1px solid #e7edf5;">
+        <div class="meta">
+          <div class="pill"><strong>Modus</strong></div>
+          <div>
+            <select id="modeSelect">
+              <option value="learn">Lernmodus (Feedback sofort)</option>
+              <option value="exam">Prüfungsmodus (Auswertung am Ende)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="row">
+          <div>
+            <label>Kapitel auswählen</label>
+            <select id="chapterSelect">
+              <option value="all">Alle (1–4)</option>
+              <option value="1">Kapitel 1</option>
+              <option value="2">Kapitel 2</option>
+              <option value="3">Kapitel 3</option>
+              <option value="4">Kapitel 4</option>
+            </select>
+          </div>
+          <div>
+            <label>Nur falsch beantwortete (Lernmodus)</label>
+            <select id="wrongOnlySelect">
+              <option value="0">Nein</option>
+              <option value="1">Ja</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px;">
+          <div>
+            <label>Anzahl Fragen (Prüfung)</label>
+            <input id="examCount" type="number" min="5" max="200" value="40" />
+            <div class="small">Im Lernmodus egal · in der Prüfung z.B. 20/40/60</div>
+          </div>
+          <div>
+            <label>Optionen</label>
+            <button class="btn" id="resetProgressBtn">Fortschritt dieses Users zurücksetzen</button>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px;">
+          <button class="btn primary" id="startBtn">Start</button>
+          <button class="btn dark" id="exportBtn">Export (Backup)</button>
+          <button class="btn dark" id="importBtn">Import</button>
+        </div>
+
+        <div class="hint" style="display:block;margin-top:10px;">
+          Tipp: Am Handy per „Zum Home-Bildschirm“ hinzufügen. Fortschritt ist pro Benutzer getrennt gespeichert.
+        </div>
+      </div>
+
+      <div class="card" style="box-shadow:none;border:1px solid #e7edf5;">
+        <div class="meta">
+          <div class="pill"><strong>Fortschritt</strong></div>
+          <div class="pill" id="progressPill">—</div>
+        </div>
+        <div class="hr"></div>
+
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Kapitel</th>
+              <th class="right">Versuche</th>
+              <th class="right">Richtig</th>
+              <th class="right">Quote</th>
+            </tr>
+          </thead>
+          <tbody id="statsBody"></tbody>
+        </table>
+
+        <div class="hr"></div>
+        <div class="small">
+          Speicherung: lokal im Browser (localStorage). Für Umzug: Export/Import.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="quizCard" style="display:none;">
+    <div class="meta">
+      <div class="pill" id="modePill">—</div>
+      <div class="pill" id="qPill">—</div>
+      <div class="pill" id="scorePill">—</div>
+    </div>
+
+    <div class="hr"></div>
+
+    <p class="q" id="questionText">—</p>
+    <div class="row" style="margin-bottom:6px;">
+      <div><span class="tag" id="chapterTag">Kapitel —</span></div>
+      <div class="right small" id="qidTag">—</div>
+    </div>
+
+    <div class="answers" id="answers"></div>
+    <div class="hint" id="feedback"></div>
+
+    <div class="row" style="margin-top:12px;">
+      <button class="btn dark" id="quitBtn">Beenden</button>
+      <button class="btn primary" id="nextBtn">Nächste Frage</button>
+    </div>
+  </div>
+
+  <div class="card" id="resultCard" style="display:none;">
+    <div class="meta">
+      <div class="pill"><strong>Prüfungsergebnis</strong></div>
+      <div class="pill" id="examSummary">—</div>
+    </div>
+    <div class="hr"></div>
+    <div id="resultDetails"></div>
+    <div class="row" style="margin-top:12px;">
+      <button class="btn dark" id="backToMenuBtn">Zurück ins Menü</button>
+      <button class="btn primary" id="reviewWrongBtn">Nur falsche Fragen üben</button>
+    </div>
+  </div>
 
 <script>
-const questions=[
-{q:"Trächtigkeit der Hündin dauert im Mittel …",a:["56 Tage","63 Tage","70 Tage"],c:1},
-{q:"Standhitze ist im …",a:["Proöstrus","Östrus","Anöstrus"],c:1},
-{q:"HD ist genetisch …",a:["dominant","rezessiv","polygen/multifaktoriell"],c:2},
-{q:"prcd-PRA wird vererbt …",a:["dominant","autosomal-rezessiv","X-chromosomal"],c:1},
-{q:"Kolostrum liefert …",a:["Fett","Antikörper","Zucker"],c:1}
-];
+const QUESTIONS = [{"id": "1.1", "chapter": "1", "q": "In welchem Land liegt der Ursprung der Rasse Labrador Retriever?", "a": ["ab ca. 3.–4. Woche", "Großbritannien (aus Neufundland/St. John’s Dog)", "Ausnahmen (z. B. künstliche Besamung, Sonderverpaarungen)", "nach Eintragung eines national geschützten Zwingernamens"], "correct": 1, "explain": "Großbritannien (aus Neufundland/St. John’s Dog)"}, {"id": "1.2", "chapter": "1", "q": "Wie lautet der Standard für den Labrador Retriever?", "a": ["z. B. prcd-PRA, EIC, HNPK", "FCI-Standard Nr. 122", "nach Eintragung eines national geschützten Zwingernamens", "bei Umzug oder wesentlichen Änderungen"], "correct": 1, "explain": "FCI-Standard Nr. 122"}, {"id": "1.3", "chapter": "1", "q": "Für welche Verwendung wurde die Rasse ursprünglich gezüchtet?", "a": ["bei später festgestellten Erbkrankheiten oder schweren Mängeln", "Apportierhund für Wasserwild/Jagdhund", "jede natürliche Person", "max. 1 Wurf pro Hitze, Wurfpausen einhalten"], "correct": 1, "explain": "Apportierhund für Wasserwild/Jagdhund"}, {"id": "1.4", "chapter": "1", "q": "Zu welcher Gruppe lt. Klassifikation der FCI gehört der Labrador Retriever?", "a": ["ca. 6 m² + 1 m² je Welpe (Richtwert)", "Gruppe 8 – Apportier-, Stöber-, Wasserhunde", "bei Umzug oder wesentlichen Änderungen", "Apportierhund für Wasserwild/Jagdhund"], "correct": 1, "explain": "Gruppe 8 – Apportier-, Stöber-, Wasserhunde"}, {"id": "1.5", "chapter": "1", "q": "Wie ist die ideale Widerristhöhe des Labrador Retrievers?", "a": ["ab ca. 12 Monate", "Apportierhund für Wasserwild/Jagdhund", "Rüden: 56–57 cm; Hündinnen: 54–56 cm", "Erbkrankheiten, Wesensmängel, schwere Fehler"], "correct": 2, "explain": "Rüden: 56–57 cm; Hündinnen: 54–56 cm"}, {"id": "1.6", "chapter": "1", "q": "Wie sind die Farben des Labrador Retrievers?", "a": ["Frei, raumgreifend, gerade, parallel", "Schwarz – Gelb – Chocolate/Braun", "12 Monate", "sofort melden"], "correct": 1, "explain": "Schwarz – Gelb – Chocolate/Braun"}, {"id": "1.7", "chapter": "1", "q": "Wie bezeichnet man die Rute des Labradors, die ein kennzeichnendes Merkmal der Rasse ist?", "a": ["sofort melden", "12 Monate", "„Otterrute“", "VDH, JGHV"], "correct": 2, "explain": "„Otterrute“"}, {"id": "1.8", "chapter": "1", "q": "Wie muss das Gangwerk des Labrador Retrievers sein?", "a": ["ca. 6 m² + 1 m² je Welpe (Richtwert)", "Frei, raumgreifend, gerade, parallel", "bei später festgestellten Erbkrankheiten oder schweren Mängeln", "Rüden: 56–57 cm; Hündinnen: 54–56 cm"], "correct": 1, "explain": "Frei, raumgreifend, gerade, parallel"}, {"id": "1.9", "chapter": "1", "q": "Welche Punkte gehören zu den erwünschten Eigenschaften des Labrador Retrievers?", "a": ["Wurfmeldung + Anzahl Welpen", "ab ca. 3.–4. Woche", "Ausnahmen (z. B. künstliche Besamung, Sonderverpaarungen)", "freundlich, führig, arbeitswillig, nervenfest, apportierfreudig, aggressionsfrei"], "correct": 3, "explain": "freundlich, führig, arbeitswillig, nervenfest, apportierfreudig, aggressionsfrei"}, {"id": "1.1", "chapter": "1", "q": "Wann wurde der LCD (Labrador Club Deutschland) e. V. gegründet?", "a": ["mind. „gut“", "1984", "12 Monate", "Deckakt melden"], "correct": 1, "explain": "1984"}, {"id": "1.11", "chapter": "1", "q": "Welchen Verbänden ist der LCD e. V. angeschlossen?", "a": ["VDH, JGHV", "Wurfmeldung + Anzahl Welpen", "ca. 9–24 Monate", "Zuchtwart/Zuchtbuchstelle"], "correct": 0, "explain": "VDH, JGHV"}, {"id": "1.12", "chapter": "1", "q": "Welche Aufgaben hat der LCD e. V.?", "a": ["nur unter festgelegten Bedingungen/Partnerwahl", "Gruppe 8 – Apportier-, Stöber-, Wasserhunde", "Zuchtüberwachung, Zuchtbuchführung, Gesundheit, Prüfungen, Ausstellungen", "vollständiges korrektes Gebiss"], "correct": 2, "explain": "Zuchtüberwachung, Zuchtbuchführung, Gesundheit, Prüfungen, Ausstellungen"}, {"id": "1.13", "chapter": "1", "q": "Wer kann Mitglied werden im LCD e. V.?", "a": ["nur unter festgelegten Bedingungen/Partnerwahl", "jede natürliche Person", "Apportierhund für Wasserwild/Jagdhund", "freundlich, führig, arbeitswillig, nervenfest, apportierfreudig, aggressionsfrei"], "correct": 1, "explain": "jede natürliche Person"}, {"id": "1.14", "chapter": "1", "q": "Welche Zuchtarten gibt es im LCD e. V.?", "a": ["Erbkrankheiten, Wesensmängel, schwere Fehler", "Standardzucht / kontrollierte Zucht nach Zuchtordnung", "nach Eintragung eines national geschützten Zwingernamens", "ab 15 Monate"], "correct": 1, "explain": "Standardzucht / kontrollierte Zucht nach Zuchtordnung"}, {"id": "1.15", "chapter": "1", "q": "Was ist ein Zwingerbuch?", "a": ["keine Zuchtzulassung", "vollständiges korrektes Gebiss", "schriftlich an Zuchtbuchstelle", "Dokumentation aller Würfe/Zuchtvorgänge"], "correct": 3, "explain": "Dokumentation aller Würfe/Zuchtvorgänge"}, {"id": "1.16", "chapter": "1", "q": "Wem muss das Zwingerbuch vorgelegt werden?", "a": ["Zuchtwart/Zuchtbuchstelle", "Frei, raumgreifend, gerade, parallel", "12 Monate", "ja, einmal möglich"], "correct": 0, "explain": "Zuchtwart/Zuchtbuchstelle"}, {"id": "1.17", "chapter": "1", "q": "Welchen Nachweis müssen angehende Züchter und Deckrüdenbesitzer erbringen?", "a": ["Schwarz – Gelb – Chocolate/Braun", "Sachkunde-/Züchterseminar", "nur mit HD A", "Angst, Aggression, Schussscheue"], "correct": 1, "explain": "Sachkunde-/Züchterseminar"}, {"id": "1.18", "chapter": "1", "q": "Ab wann darf ein Antrag auf internationalen Zwingerschutz gestellt werden?", "a": ["nach Eintragung eines national geschützten Zwingernamens", "schriftlich an Zuchtbuchstelle", "ca. 6 m² + 1 m² je Welpe (Richtwert)", "ab 15 Monate"], "correct": 0, "explain": "nach Eintragung eines national geschützten Zwingernamens"}, {"id": "1.19", "chapter": "1", "q": "Wann ist eine erneute Zuchtstättenabnahme erforderlich?", "a": ["bei Umzug oder wesentlichen Änderungen", "Eckzähne und Reißzähne", "FCI-Standard Nr. 122", "ab ca. 3.–4. Woche"], "correct": 0, "explain": "bei Umzug oder wesentlichen Änderungen"}, {"id": "1.2", "chapter": "1", "q": "Was ist bei einer Zuchtzulassung mit Auflage zu beachten?", "a": ["Apportierhund für Wasserwild/Jagdhund", "nur mit HD A", "nur unter festgelegten Bedingungen/Partnerwahl", "Großbritannien (aus Neufundland/St. John’s Dog)"], "correct": 2, "explain": "nur unter festgelegten Bedingungen/Partnerwahl"}, {"id": "1.21", "chapter": "1", "q": "Welche Mindestgröße muss der Welpenauslauf (innen) haben?", "a": ["ca. 9–24 Monate", "alle Untersuchungen/Genehmigungen vorhanden", "ab ca. 12 Monate", "ca. 6 m² + 1 m² je Welpe (Richtwert)"], "correct": 3, "explain": "ca. 6 m² + 1 m² je Welpe (Richtwert)"}, {"id": "1.22", "chapter": "1", "q": "Ab welchem Alter der Welpen muss ein zusätzlicher Außenauslauf vorhanden sein?", "a": ["Zuchtüberwachung, Zuchtbuchführung, Gesundheit, Prüfungen, Ausstellungen", "Erbkrankheiten, Wesensmängel, schwere Fehler", "Apportierhund für Wasserwild/Jagdhund", "ab ca. 3.–4. Woche"], "correct": 3, "explain": "ab ca. 3.–4. Woche"}, {"id": "1.23", "chapter": "1", "q": "Unter welchen Voraussetzungen darf eine Hündin belegt werden?", "a": ["Mindestalter; Zuchtzulassung; gesund", "Dokumentation aller Würfe/Zuchtvorgänge", "nach Eintragung eines national geschützten Zwingernamens", "sofort melden"], "correct": 0, "explain": "Mindestalter; Zuchtzulassung; gesund"}, {"id": "1.24", "chapter": "1", "q": "Was muss der Züchter vor der Belegung einer Hündin im LCD e.V. beachten?", "a": ["ab ca. 3.–4. Woche", "mind. „gut“", "Wurfmeldung + Anzahl Welpen", "alle Untersuchungen/Genehmigungen vorhanden"], "correct": 3, "explain": "alle Untersuchungen/Genehmigungen vorhanden"}, {"id": "1.25", "chapter": "1", "q": "Welche Zeit-Regelungen sind bei der Belegung einer Hündin zu beachten?", "a": ["Gebissanomalien, Kryptorchismus, Wesensfehler, schwere Exterieurfehler", "nur unter festgelegten Bedingungen/Partnerwahl", "ca. 9–24 Monate", "max. 1 Wurf pro Hitze, Wurfpausen einhalten"], "correct": 3, "explain": "max. 1 Wurf pro Hitze, Wurfpausen einhalten"}, {"id": "1.26", "chapter": "1", "q": "Was benötigen sowohl Hündin als auch Rüde zur Zuchtzulassung?", "a": ["bei Umzug oder wesentlichen Änderungen", "nur mit HD A", "FCI-Standard Nr. 122", "Wesenstest + Formwert + HD/ED + Gentests + Augenuntersuchung"], "correct": 3, "explain": "Wesenstest + Formwert + HD/ED + Gentests + Augenuntersuchung"}, {"id": "1.27", "chapter": "1", "q": "Ab welchem Alter darf ein Rüde decken?", "a": ["vor Zuchteinsatz", "ab ca. 12 Monate", "Gruppe 8 – Apportier-, Stöber-, Wasserhunde", "Erbkrankheiten, Wesensmängel, schwere Fehler"], "correct": 1, "explain": "ab ca. 12 Monate"}, {"id": "1.28", "chapter": "1", "q": "Was muss der Deckrüdenbesitzer der Zuchtbuchstelle melden?", "a": ["Dokumentation aller Würfe/Zuchtvorgänge", "sofort melden", "Deckakt melden", "Sachkunde-/Züchterseminar"], "correct": 2, "explain": "Deckakt melden"}, {"id": "1.29", "chapter": "1", "q": "Was muss der Züchter der Zuchtbuchstelle melden?", "a": ["Wurfmeldung + Anzahl Welpen", "freundlich, führig, arbeitswillig, nervenfest, apportierfreudig, aggressionsfrei", "nach Eintragung eines national geschützten Zwingernamens", "keine Zuchtzulassung"], "correct": 0, "explain": "Wurfmeldung + Anzahl Welpen"}, {"id": "1.3", "chapter": "1", "q": "Wie ist dem LCD e.V. eine Verpaarung anzuzeigen?", "a": ["schriftlich an Zuchtbuchstelle", "Wesenstest + Formwert + HD/ED + Gentests + Augenuntersuchung", "mind. „gut“", "Standardzucht / kontrollierte Zucht nach Zuchtordnung"], "correct": 0, "explain": "schriftlich an Zuchtbuchstelle"}, {"id": "1.31", "chapter": "1", "q": "Was muss man tun, wenn die Hündin fehlgedeckt worden ist?", "a": ["alle Untersuchungen/Genehmigungen vorhanden", "FCI-Standard Nr. 122", "Deckakt melden", "sofort melden"], "correct": 3, "explain": "sofort melden"}, {"id": "1.32", "chapter": "1", "q": "Was bedarf der Genehmigung durch die Zuchtkommission?", "a": ["alle Untersuchungen/Genehmigungen vorhanden", "Ausnahmen (z. B. künstliche Besamung, Sonderverpaarungen)", "Gebissanomalien, Kryptorchismus, Wesensfehler, schwere Exterieurfehler", "Rüden: 56–57 cm; Hündinnen: 54–56 cm"], "correct": 1, "explain": "Ausnahmen (z. B. künstliche Besamung, Sonderverpaarungen)"}, {"id": "1.33", "chapter": "1", "q": "Darf eine Hündin nach LCD Zuchtordnung für ihren ersten Wurf künstlich inseminiert werden?", "a": ["12 Monate", "Nein", "keine Zuchtzulassung", "Deckakt melden"], "correct": 1, "explain": "Nein"}, {"id": "1.34", "chapter": "1", "q": "Ab welchem Alter des Hundes darf das offizielle Röntgen der Hüftgelenke und Ellenbogen  durchgeführt werden?", "a": ["vollständiges korrektes Gebiss", "alle Untersuchungen/Genehmigungen vorhanden", "Eckzähne und Reißzähne", "ab 12 Monate"], "correct": 3, "explain": "ab 12 Monate"}, {"id": "1.35", "chapter": "1", "q": "Wer wertet die Röntgenbilder aus?", "a": ["VDH/FCI-Gutachter", "sofort melden", "Apportierhund für Wasserwild/Jagdhund", "ca. 9–24 Monate"], "correct": 0, "explain": "VDH/FCI-Gutachter"}, {"id": "1.36", "chapter": "1", "q": "Welche HD-Einstufungen sind von der Zucht ausgeschlossen?", "a": ["ab ca. 3.–4. Woche", "nur unter festgelegten Bedingungen/Partnerwahl", "Schwarz – Gelb – Chocolate/Braun", "D und E"], "correct": 3, "explain": "D und E"}, {"id": "1.37", "chapter": "1", "q": "Mit welchem Deckpartner darf ein Hund verpaart werden, der mit HD C2/B2 ausgewertet ist?", "a": ["12 Monate", "ab 12 Monate", "Deckakt melden", "nur mit HD A"], "correct": 3, "explain": "nur mit HD A"}, {"id": "1.38", "chapter": "1", "q": "Dürfen HD B und HD C Hunde miteinander verpaart werden?", "a": ["VDH, JGHV", "Nein", "12 Monate", "Deckakt melden"], "correct": 1, "explain": "Nein"}, {"id": "1.39", "chapter": "1", "q": "Welche ED-Grade sind zur Zucht zugelassen?", "a": ["0 (teilweise 1 mit Auflage)", "jede natürliche Person", "Zuchtüberwachung, Zuchtbuchführung, Gesundheit, Prüfungen, Ausstellungen", "ab 15 Monate"], "correct": 0, "explain": "0 (teilweise 1 mit Auflage)"}, {"id": "1.4", "chapter": "1", "q": "Wann sind Hunde generell von der Zucht auszuschließen?", "a": ["D und E", "freundlich, führig, arbeitswillig, nervenfest, apportierfreudig, aggressionsfrei", "Erbkrankheiten, Wesensmängel, schwere Fehler", "ab ca. 3.–4. Woche"], "correct": 2, "explain": "Erbkrankheiten, Wesensmängel, schwere Fehler"}, {"id": "1.41", "chapter": "1", "q": "Welche Altersvoraussetzungen muss ein Labrador Retriever haben, um an einem Wesenstest des LCD e. V. teilzunehmen?", "a": ["Sachkunde-/Züchterseminar", "Großbritannien (aus Neufundland/St. John’s Dog)", "ca. 9–24 Monate", "Ausnahmen (z. B. künstliche Besamung, Sonderverpaarungen)"], "correct": 2, "explain": "ca. 9–24 Monate"}, {"id": "1.42", "chapter": "1", "q": "Wann kann ein Wesenstest nicht bestanden werden?", "a": ["P4/M1 – größte Schneidezähne zum Zerschneiden", "Wurfmeldung + Anzahl Welpen", "vor Zuchteinsatz", "Angst, Aggression, Schussscheue"], "correct": 3, "explain": "Angst, Aggression, Schussscheue"}, {"id": "1.43", "chapter": "1", "q": "Darf ein Wesenstest (WT) wiederholt werden?", "a": ["ruhig stehen, vorführen, Zähne zeigen", "ja, einmal möglich", "z. B. prcd-PRA, EIC, HNPK", "Eckzähne und Reißzähne"], "correct": 1, "explain": "ja, einmal möglich"}, {"id": "1.44", "chapter": "1", "q": "Was sollte der Hund zur Formwertbenotung können?", "a": ["ab 12 Monate", "D und E", "ruhig stehen, vorführen, Zähne zeigen", "Schwarz – Gelb – Chocolate/Braun"], "correct": 2, "explain": "ruhig stehen, vorführen, Zähne zeigen"}, {"id": "1.45", "chapter": "1", "q": "Ab welchem Alter darf der Hund zur Formwertbeurteilung?", "a": ["Standardzucht / kontrollierte Zucht nach Zuchtordnung", "ab 15 Monate", "D und E", "Mindestalter; Zuchtzulassung; gesund"], "correct": 1, "explain": "ab 15 Monate"}, {"id": "1.46", "chapter": "1", "q": "Welche Formwertnoten berechtigen zur Zucht?", "a": ["ab 15 Monate", "FCI-Standard Nr. 122", "schriftlich an Zuchtbuchstelle", "mind. „gut“"], "correct": 3, "explain": "mind. „gut“"}, {"id": "1.47", "chapter": "1", "q": "Kann eine Formwertbeurteilung wiederholt werden, sofern keine zuchtausschließenden Fehler vorliegen?", "a": ["ja", "mind. „gut“", "VDH, JGHV", "vor Zuchteinsatz"], "correct": 0, "explain": "ja"}, {"id": "1.48", "chapter": "1", "q": "Was sind zuchtausschließende Fehler?", "a": ["Erbkrankheiten, Wesensmängel, schwere Fehler", "Gebissanomalien, Kryptorchismus, Wesensfehler, schwere Exterieurfehler", "jede natürliche Person", "freundlich, führig, arbeitswillig, nervenfest, apportierfreudig, aggressionsfrei"], "correct": 1, "explain": "Gebissanomalien, Kryptorchismus, Wesensfehler, schwere Exterieurfehler"}, {"id": "1.49", "chapter": "1", "q": "Wie muss das Gebiss des Hundes beschaffen sein?", "a": ["Deckakt melden", "VDH, JGHV", "Scherengebiss", "sofort melden"], "correct": 2, "explain": "Scherengebiss"}, {"id": "1.5", "chapter": "1", "q": "Aus wie vielen Zähnen besteht das bleibende Gebiss des Hundes?", "a": ["keine Zuchtzulassung", "Deckakt melden", "42 Zähne", "FCI-Standard Nr. 122"], "correct": 2, "explain": "42 Zähne"}, {"id": "1.51", "chapter": "1", "q": "Welche Zähne des Hundes werden auch als Weisheitszähne bezeichnet?", "a": ["42 Zähne", "sofort melden", "mind. „gut“", "Molaren"], "correct": 3, "explain": "Molaren"}, {"id": "1.52", "chapter": "1", "q": "Welche Aussage zu den Reißzähnen des Hundes stimmt?", "a": ["Gruppe 8 – Apportier-, Stöber-, Wasserhunde", "P4/M1 – größte Schneidezähne zum Zerschneiden", "Großbritannien (aus Neufundland/St. John’s Dog)", "Frei, raumgreifend, gerade, parallel"], "correct": 1, "explain": "P4/M1 – größte Schneidezähne zum Zerschneiden"}, {"id": "1.53", "chapter": "1", "q": "Welche Zähne müssen nach Zuchtordnung des LCD e. V. vollständig vorhanden sein?", "a": ["schriftlich an Zuchtbuchstelle", "Angst, Aggression, Schussscheue", "Zuchtwart/Zuchtbuchstelle", "Eckzähne und Reißzähne"], "correct": 3, "explain": "Eckzähne und Reißzähne"}, {"id": "1.54", "chapter": "1", "q": "Welcher Zahnstatus ist Voraussetzung für die Zuchtzulassung eines Hundes?", "a": ["z. B. prcd-PRA, EIC, HNPK", "ja, einmal möglich", "vollständiges korrektes Gebiss", "Gruppe 8 – Apportier-, Stöber-, Wasserhunde"], "correct": 2, "explain": "vollständiges korrektes Gebiss"}, {"id": "1.55", "chapter": "1", "q": "Welche Gentests schreibt die LCD-Zuchtordnung verpflichtend vor?", "a": ["Schwarz – Gelb – Chocolate/Braun", "z. B. prcd-PRA, EIC, HNPK", "Wurfmeldung + Anzahl Welpen", "bei Umzug oder wesentlichen Änderungen"], "correct": 1, "explain": "z. B. prcd-PRA, EIC, HNPK"}, {"id": "1.56", "chapter": "1", "q": "Wie lange ist eine Augenuntersuchung (GPRA, HC, RD) für Zuchthunde im LCD e .V. gültig?", "a": ["Eckzähne und Reißzähne", "Wurfmeldung + Anzahl Welpen", "12 Monate", "FCI-Standard Nr. 122"], "correct": 2, "explain": "12 Monate"}, {"id": "1.57", "chapter": "1", "q": "Wie lange ist der Gentest auf PRA im LCD e. V. gültig?", "a": ["keine Zuchtzulassung", "12 Monate", "mind. „gut“", "lebenslang"], "correct": 3, "explain": "lebenslang"}, {"id": "1.58", "chapter": "1", "q": "Wann muss bei Zuchthunden der prcd-PRA Gentest durchgeführt werden?", "a": ["jede natürliche Person", "ab ca. 12 Monate", "12 Monate", "vor Zuchteinsatz"], "correct": 3, "explain": "vor Zuchteinsatz"}, {"id": "1.59", "chapter": "1", "q": "Bekommen prcd-PRA affected getestete Hunde eine Zuchtzulassung?", "a": ["FCI-Standard Nr. 122", "alle Untersuchungen/Genehmigungen vorhanden", "Apportierhund für Wasserwild/Jagdhund", "keine Zuchtzulassung"], "correct": 3, "explain": "keine Zuchtzulassung"}, {"id": "1.6", "chapter": "1", "q": "Darf man zwei Anlagenträger PRA miteinander verpaaren?", "a": ["Zuchtwart/Zuchtbuchstelle", "12 Monate", "42 Zähne", "Nein"], "correct": 3, "explain": "Nein"}, {"id": "1.61", "chapter": "1", "q": "Können Gentests durch Versand der Blutproben direkt in die LCD Geschäftsstelle  in Auftrag gegeben werden?", "a": ["Nein – über zugelassenes Labor/Tierarzt", "freundlich, führig, arbeitswillig, nervenfest, apportierfreudig, aggressionsfrei", "ab ca. 3.–4. Woche", "Apportierhund für Wasserwild/Jagdhund"], "correct": 0, "explain": "Nein – über zugelassenes Labor/Tierarzt"}, {"id": "1.62", "chapter": "1", "q": "Wann ist ein Hund mit Zuchtzulassung nachträglich von der Zucht auszuschließen?", "a": ["bei später festgestellten Erbkrankheiten oder schweren Mängeln", "ca. 9–24 Monate", "nur mit HD A", "Frei, raumgreifend, gerade, parallel"], "correct": 0, "explain": "bei später festgestellten Erbkrankheiten oder schweren Mängeln"}, {"id": "2.1", "chapter": "2", "q": "Deckzeitpunktbestimmung: Welche medizinischen Möglichkeiten gibt es?", "a": ["Bis zu 5–7 Tage (meist 3–5 Tage)", "1. aginalzytologie (Scheidenabstrich); → mikroskopische Beurteilung der Zelltypen zur Zyklusphasenbestimmung; 2. Progesteronbestimmung im Blut (Serumprogesteron); → wichtigste und genaueste Methode zur Ovulationsbestimmung; 3. LH-Bestimmung im Blut (LH-Peak); → zeigt Eisprungbeginn an (v. a. in Speziallabors); 4. Vaginoskopie; → Beurteilung der Schleimhautfalten und Schleimhautveränderungen; 5. Klinische/äußere Beobachtung (unterstützend); → Verhalten, Standhitze, Ausfluss, Schwellung der Vulva", "2–3 Tage nach dem Eisprung; → wenn die Eizellen gereift und befruchtungsfähig sind", "ruhige Umgebung; stressfrei; passende Standhitze; ggf. Progesteronbestimmung; kein Zwang/Festhalten"], "correct": 1, "explain": "1. aginalzytologie (Scheidenabstrich); → mikroskopische Beurteilung der Zelltypen zur Zyklusphasenbestimmung; 2. Progesteronbestimmung im Blut (Serumprogesteron); → wichtigste und genaueste Methode zur Ovulationsbestimmung; 3. LH-Bestimmung im Blut (LH-Peak); → zeigt Eisprungbeginn an (v. a. in Speziallabors); 4. Vaginoskopie; → Beurteilung der Schleimhautfalten und Schleimhautveränderungen; 5. Klinische/äußere Beobachtung (unterstützend); → Verhalten, Standhitze, Ausfluss, Schwellung der Vulva"}, {"id": "2.2", "chapter": "2", "q": "Wie lange dauert die Läufigkeit einer Hündin?", "a": ["Ca. 3 Wochen (18–21 Tage); (Proöstrus + Östrus zusammen)", "Ca. 4–10 ng/ml; (Ovulation beginnt etwa bei ~5 ng/ml)", "Durch Anschwellen des Bulbus glandis und Kontraktion der Scheidenmuskulatur", "Sie entsteht hormonell (Progesteronabfall/Prolaktinanstieg) im Diöstrus und kann auch ohne Deckakt auftreten"], "correct": 0, "explain": "Ca. 3 Wochen (18–21 Tage); (Proöstrus + Östrus zusammen)"}, {"id": "2.3", "chapter": "2", "q": "Was ist der günstigste Deckzeitpunkt?", "a": ["Ca. 3 Wochen (18–21 Tage); (Proöstrus + Östrus zusammen)", "Unwahrscheinlich, aber theoretisch möglich, wenn noch befruchtungsfähige Eizellen vorhanden sind", "Befruchtung im Eileiter (Ampulla); Eizellen reifen 1–3 Tage nach Ovulation; Spermien bleiben mehrere Tage lebensfähig", "2–3 Tage nach dem Eisprung; → wenn die Eizellen gereift und befruchtungsfähig sind"], "correct": 3, "explain": "2–3 Tage nach dem Eisprung; → wenn die Eizellen gereift und befruchtungsfähig sind"}, {"id": "2.4", "chapter": "2", "q": "Bei welchem Progesteronwert finden die Eisprünge statt?", "a": ["Ca. 63 Tage (58–68 Tage möglich)", "Ca. 4–10 ng/ml; (Ovulation beginnt etwa bei ~5 ng/ml)", "Ab Tag 25–30 nach Ovulation/Deckakt", "Ca. 10–20 ng/ml; → optimale Befruchtungsfähigkeit der Eizellen"], "correct": 1, "explain": "Ca. 4–10 ng/ml; (Ovulation beginnt etwa bei ~5 ng/ml)"}, {"id": "2.5", "chapter": "2", "q": "Bei welchem Protesteronwert der Hündin ist der optimale Deckzeitpunkt?", "a": ["Sie entsteht hormonell (Progesteronabfall/Prolaktinanstieg) im Diöstrus und kann auch ohne Deckakt auftreten", "Künstliche Besamung mit Tiefgefriersperma; (sehr kurze Lebensdauer der Spermien)", "ruhige Umgebung; stressfrei; passende Standhitze; ggf. Progesteronbestimmung; kein Zwang/Festhalten", "Ca. 10–20 ng/ml; → optimale Befruchtungsfähigkeit der Eizellen"], "correct": 3, "explain": "Ca. 10–20 ng/ml; → optimale Befruchtungsfähigkeit der Eizellen"}, {"id": "2.6", "chapter": "2", "q": "In welchem Zyklusabschnitt ist die Hündin in der Standhitze?", "a": ["Östrus", "Unwahrscheinlich, aber theoretisch möglich, wenn noch befruchtungsfähige Eizellen vorhanden sind", "Sie entsteht hormonell (Progesteronabfall/Prolaktinanstieg) im Diöstrus und kann auch ohne Deckakt auftreten", "Ca. 10–20 ng/ml; → optimale Befruchtungsfähigkeit der Eizellen"], "correct": 0, "explain": "Östrus"}, {"id": "2.7", "chapter": "2", "q": "Welche Aussagen zur Befruchtung stimmen?", "a": ["Unwahrscheinlich, aber theoretisch möglich, wenn noch befruchtungsfähige Eizellen vorhanden sind", "Befruchtung im Eileiter (Ampulla); Eizellen reifen 1–3 Tage nach Ovulation; Spermien bleiben mehrere Tage lebensfähig", "Durch Anschwellen des Bulbus glandis und Kontraktion der Scheidenmuskulatur", "Bis zu 5–7 Tage (meist 3–5 Tage)"], "correct": 1, "explain": "Befruchtung im Eileiter (Ampulla); Eizellen reifen 1–3 Tage nach Ovulation; Spermien bleiben mehrere Tage lebensfähig"}, {"id": "2.8", "chapter": "2", "q": "Wie lange kann das Sperma einens Rüden (in der Hündin) höchstens lebensfähig sein?", "a": ["Bis zu 5–7 Tage (meist 3–5 Tage)", "Befruchtung im Eileiter (Ampulla); Eizellen reifen 1–3 Tage nach Ovulation; Spermien bleiben mehrere Tage lebensfähig", "Unwahrscheinlich, aber theoretisch möglich, wenn noch befruchtungsfähige Eizellen vorhanden sind", "Ca. 10–20 ng/ml; → optimale Befruchtungsfähigkeit der Eizellen"], "correct": 0, "explain": "Bis zu 5–7 Tage (meist 3–5 Tage)"}, {"id": "2.9", "chapter": "2", "q": "Bei welcher Art der Belegung der Hündin hat man den geringsten zeitlichen Spielraum?", "a": ["Bis zu 5–7 Tage (meist 3–5 Tage)", "Nicht automatisch – Hängen erhöht die Wahrscheinlichkeit, garantiert aber keine Trächtigkeit", "Künstliche Besamung mit Tiefgefriersperma; (sehr kurze Lebensdauer der Spermien)", "Ca. 4–10 ng/ml; (Ovulation beginnt etwa bei ~5 ng/ml)"], "correct": 2, "explain": "Künstliche Besamung mit Tiefgefriersperma; (sehr kurze Lebensdauer der Spermien)"}, {"id": "2.1", "chapter": "2", "q": "Wie bereitet man die Hündin auf den eigentlichen Deckakt vor?", "a": ["ruhige Umgebung; stressfrei; passende Standhitze; ggf. Progesteronbestimmung; kein Zwang/Festhalten", "Ca. 4–10 ng/ml; (Ovulation beginnt etwa bei ~5 ng/ml)", "Durch Anschwellen des Bulbus glandis und Kontraktion der Scheidenmuskulatur", "Ja, während der Standhitze sind mehrere Deckakte möglich"], "correct": 0, "explain": "ruhige Umgebung; stressfrei; passende Standhitze; ggf. Progesteronbestimmung; kein Zwang/Festhalten"}, {"id": "2.11", "chapter": "2", "q": "Kann die Hündin nach erfolgreichem Deckakt nochmals gedeckt werden?", "a": ["Unwahrscheinlich, aber theoretisch möglich, wenn noch befruchtungsfähige Eizellen vorhanden sind", "Durch Anschwellen des Bulbus glandis und Kontraktion der Scheidenmuskulatur", "Ja, während der Standhitze sind mehrere Deckakte möglich", "Sie entsteht hormonell (Progesteronabfall/Prolaktinanstieg) im Diöstrus und kann auch ohne Deckakt auftreten"], "correct": 2, "explain": "Ja, während der Standhitze sind mehrere Deckakte möglich"}, {"id": "2.12", "chapter": "2", "q": "Wie lange dauert das Hängen nach einem Deckkakt in der Regel?", "a": ["Ab Tag 25–30 nach Ovulation/Deckakt", "Nicht automatisch – Hängen erhöht die Wahrscheinlichkeit, garantiert aber keine Trächtigkeit", "ruhige Umgebung; stressfrei; passende Standhitze; ggf. Progesteronbestimmung; kein Zwang/Festhalten", "Ca. 10–30 Minuten (manchmal länger)"], "correct": 3, "explain": "Ca. 10–30 Minuten (manchmal länger)"}, {"id": "2.13", "chapter": "2", "q": "Wodurch wird das \"Hängen\" von Rüde und Hündin beim Deckakt bewikt?", "a": ["Nicht automatisch – Hängen erhöht die Wahrscheinlichkeit, garantiert aber keine Trächtigkeit", "Befruchtung im Eileiter (Ampulla); Eizellen reifen 1–3 Tage nach Ovulation; Spermien bleiben mehrere Tage lebensfähig", "Durch Anschwellen des Bulbus glandis und Kontraktion der Scheidenmuskulatur", "Ca. 3 Wochen (18–21 Tage); (Proöstrus + Östrus zusammen)"], "correct": 2, "explain": "Durch Anschwellen des Bulbus glandis und Kontraktion der Scheidenmuskulatur"}, {"id": "2.14", "chapter": "2", "q": "Kannes zur Trächtigkeit kommen, wenn eine Hündin am 20. Tag der Hitze oder später ungewollt gedeckt wurde?", "a": ["Ca. 10–30 Minuten (manchmal länger)", "Befruchtung im Eileiter (Ampulla); Eizellen reifen 1–3 Tage nach Ovulation; Spermien bleiben mehrere Tage lebensfähig", "Sie entsteht hormonell (Progesteronabfall/Prolaktinanstieg) im Diöstrus und kann auch ohne Deckakt auftreten", "Unwahrscheinlich, aber theoretisch möglich, wenn noch befruchtungsfähige Eizellen vorhanden sind"], "correct": 3, "explain": "Unwahrscheinlich, aber theoretisch möglich, wenn noch befruchtungsfähige Eizellen vorhanden sind"}, {"id": "2.15", "chapter": "2", "q": "Ist ein Deckakt erfolgreich, wenn es zum Hängen kommt?", "a": ["Nicht automatisch – Hängen erhöht die Wahrscheinlichkeit, garantiert aber keine Trächtigkeit", "Ca. 4–10 ng/ml; (Ovulation beginnt etwa bei ~5 ng/ml)", "Sie entsteht hormonell (Progesteronabfall/Prolaktinanstieg) im Diöstrus und kann auch ohne Deckakt auftreten", "Ca. 63 Tage (58–68 Tage möglich)"], "correct": 0, "explain": "Nicht automatisch – Hängen erhöht die Wahrscheinlichkeit, garantiert aber keine Trächtigkeit"}, {"id": "2.16", "chapter": "2", "q": "Wie lange dauert die Trächtigkeit der Hündin?", "a": ["Ca. 3 Wochen (18–21 Tage); (Proöstrus + Östrus zusammen)", "ruhige Umgebung; stressfrei; passende Standhitze; ggf. Progesteronbestimmung; kein Zwang/Festhalten", "Künstliche Besamung mit Tiefgefriersperma; (sehr kurze Lebensdauer der Spermien)", "Ca. 63 Tage (58–68 Tage möglich)"], "correct": 3, "explain": "Ca. 63 Tage (58–68 Tage möglich)"}, {"id": "2.17", "chapter": "2", "q": "Wann ist der optimale Zetpunkt, um die Trächtigkeit per Ultrschall nachzusweisen?", "a": ["Ab Tag 25–30 nach Ovulation/Deckakt", "Ca. 63 Tage (58–68 Tage möglich)", "Unwahrscheinlich, aber theoretisch möglich, wenn noch befruchtungsfähige Eizellen vorhanden sind", "Ca. 3 Wochen (18–21 Tage); (Proöstrus + Östrus zusammen)"], "correct": 0, "explain": "Ab Tag 25–30 nach Ovulation/Deckakt"}, {"id": "2.18", "chapter": "2", "q": "Welche Aussage zur Scheinträchtigkeit der Hündin stimmt?", "a": ["Ca. 63 Tage (58–68 Tage möglich)", "Ab Tag 25–30 nach Ovulation/Deckakt", "Sie entsteht hormonell (Progesteronabfall/Prolaktinanstieg) im Diöstrus und kann auch ohne Deckakt auftreten", "Ja, während der Standhitze sind mehrere Deckakte möglich"], "correct": 2, "explain": "Sie entsteht hormonell (Progesteronabfall/Prolaktinanstieg) im Diöstrus und kann auch ohne Deckakt auftreten"}, {"id": "3. Trächtigkeit – Geburt – Neonatale Phase – Aufzucht", "chapter": "3", "q": "Unnamed: 1", "a": ["Palpation (Tag 21–28); Ultraschall (ab Tag 25) → Methode der Wahl; Relaxin-Test (ab Tag 25–30); Röntgen (ab Tag 45–50, Skelett sichtbar)", "Wie lange dauert die Trächtigkeit einer Hündin nach Eisprüngen durchschnittlich?; Ø 63 Tage (62–64 Tage)", "6–8, 12, 16 Wochen + 15 Monate (Grundimmunisierung)", "bis Woche 5 normal; ab Woche 5–6 energie- und proteinreich (Welpen-/Aufzuchtfutter); mehrere kleine Mahlzeiten; kein Überfüttern"], "correct": 1, "explain": "Wie lange dauert die Trächtigkeit einer Hündin nach Eisprüngen durchschnittlich?; Ø 63 Tage (62–64 Tage)"}, {"id": "3.2", "chapter": "3", "q": "Wie ist die Trächtigkeit erkennbar? Welche Methoden der Feststellung gibt es?", "a": ["Ja, aber nur eingeschränkt / Ursache beachten / oft max. 1–2 weitere Würfe", "Wie lange dauert die Trächtigkeit einer Hündin nach Eisprüngen durchschnittlich?; Ø 63 Tage (62–64 Tage)", "Palpation (Tag 21–28); Ultraschall (ab Tag 25) → Methode der Wahl; Relaxin-Test (ab Tag 25–30); Röntgen (ab Tag 45–50, Skelett sichtbar)", "bis Woche 5 normal; ab Woche 5–6 energie- und proteinreich (Welpen-/Aufzuchtfutter); mehrere kleine Mahlzeiten; kein Überfüttern"], "correct": 2, "explain": "Palpation (Tag 21–28); Ultraschall (ab Tag 25) → Methode der Wahl; Relaxin-Test (ab Tag 25–30); Röntgen (ab Tag 45–50, Skelett sichtbar)"}, {"id": "3.3", "chapter": "3", "q": "Wie werden Hündinnen während der Trächtigkeit ernährt?", "a": ["bis Woche 5 normal; ab Woche 5–6 energie- und proteinreich (Welpen-/Aufzuchtfutter); mehrere kleine Mahlzeiten; kein Überfüttern", "Palpation (Tag 21–28); Ultraschall (ab Tag 25) → Methode der Wahl; Relaxin-Test (ab Tag 25–30); Röntgen (ab Tag 45–50, Skelett sichtbar)", "Ja, aber nur eingeschränkt / Ursache beachten / oft max. 1–2 weitere Würfe", "2 h starke Wehen ohne Welpe; 4 h Pause; grüner Ausfluss ohne Welpe; Fieber/Schwäche; feststeckender Welpe"], "correct": 0, "explain": "bis Woche 5 normal; ab Woche 5–6 energie- und proteinreich (Welpen-/Aufzuchtfutter); mehrere kleine Mahlzeiten; kein Überfüttern"}, {"id": "3.4", "chapter": "3", "q": "Wodurch wird die Geburt eingeleitet?", "a": ["ca. Tag 10–14", "6–8, 12, 16 Wochen + 15 Monate (Grundimmunisierung)", "Progesteronabfall + Prostaglandine + Oxytocin → Wehenbeginn", "Gaumenspalte, Afterverschluss, Missbildungen, fehlende Reflexe"], "correct": 2, "explain": "Progesteronabfall + Prostaglandine + Oxytocin → Wehenbeginn"}, {"id": "3.5", "chapter": "3", "q": "Welche einzelnen Phasen durchläuft die Hündin während der Geburt?", "a": ["ab 8 Wochen", "Welpe kann nicht saugen → Aspirationsgefahr", "täglich (anfangs 2× täglich möglich)", "1. Eröffnungsphase; 2. Austreibungsphase; 3. Nachgeburtsphase"], "correct": 3, "explain": "1. Eröffnungsphase; 2. Austreibungsphase; 3. Nachgeburtsphase"}, {"id": "3.6", "chapter": "3", "q": "Darf eine Hündin nach einer Kaiserschnitt-Geburt nochmals zur Zucht eingesetzt werden?", "a": ["6–8, 12, 16 Wochen + 15 Monate (Grundimmunisierung)", "Gefahr, dass Welpen draußen geboren/verloren werden", "Ja, aber nur eingeschränkt / Ursache beachten / oft max. 1–2 weitere Würfe", "z. B. Gaumenspalte, Nabelbruch, Fehlstellungen, Afteratresie"], "correct": 2, "explain": "Ja, aber nur eingeschränkt / Ursache beachten / oft max. 1–2 weitere Würfe"}, {"id": "3.7", "chapter": "3", "q": "Wie werden die Welpennamen eines Wurfes eingetragen?", "a": ["ca. 12–24 Stunden", "Alle gleicher Anfangsbuchstabe (Wurfstabe)", "Gewicht; Trinkverhalten; Temperatur; Vitalität", "4.–7. Monat"], "correct": 1, "explain": "Alle gleicher Anfangsbuchstabe (Wurfstabe)"}, {"id": "3.8", "chapter": "3", "q": "Worauf muss man direkt nach der Geburt und auch später achten?", "a": ["Atmung; Saugen; Wärme; Gewicht; Missbildungen", "Kalziummangel der Hündin → Krämpfe → Notfall", "ca. 3.–12. Woche", "eine Wehen mehr, Hündin ruhig, alle Plazenten draußen"], "correct": 0, "explain": "Atmung; Saugen; Wärme; Gewicht; Missbildungen"}, {"id": "3.9", "chapter": "3", "q": "Gibt es Temperaturabfall als Anzeichen der bevorstehenden Geburt?", "a": ["Durchfall/Erbrechen", "Unterkiefer länger", "Ja", "passive Immunität"], "correct": 2, "explain": "Ja"}, {"id": "3.1", "chapter": "3", "q": "Wie viele Stunden nach Temperaturabfall ist mit der Geburt zu rechnen?", "a": ["neonatal; Übergangsphase; Sozialisierung; Juvenilphase", "Welpen ruhig, satt, tägliche Gewichtszunahme", "abtrocknen; kräftig rubbeln; Atemwege freimachen; Wärme", "ca. 12–24 Stunden"], "correct": 3, "explain": "ca. 12–24 Stunden"}, {"id": "3.11", "chapter": "3", "q": "Warum darf die Hündin während der Geburt nur angeleint ins Freie?", "a": ["Alle gleicher Anfangsbuchstabe (Wurfstabe)", "kriechen, saugen, schlafen, Wärmesuche", "spezieller Welpenmilchersatz (keine Kuhmilch)", "Gefahr, dass Welpen draußen geboren/verloren werden"], "correct": 3, "explain": "Gefahr, dass Welpen draußen geboren/verloren werden"}, {"id": "3.12", "chapter": "3", "q": "Welche Aussage zur Nachgeburt stimmt?", "a": ["Für jeden Welpen eine Plazenta", "eine Wehen mehr, Hündin ruhig, alle Plazenten draußen", "ca. 3.–12. Woche", "alle 2–3 Stunden"], "correct": 0, "explain": "Für jeden Welpen eine Plazenta"}, {"id": "3.13", "chapter": "3", "q": "Welche Nachteile bringt das Fressen der Plazenta durch die Hündin mit sich?", "a": ["nicht vollständig ausgebildet", "ab 3.–4. Woche", "Ja → Tierarzt", "Durchfall/Erbrechen"], "correct": 3, "explain": "Durchfall/Erbrechen"}, {"id": "3.14", "chapter": "3", "q": "Wie wird die Nabelschnur durchtrennt?", "a": ["Erstmilch mit Antikörpern", "Geruch, Tastsinn, Wärmeempfinden", "Hündin beißt ab; ggf. abbinden + desinfizieren", "4.–7. Monat"], "correct": 2, "explain": "Hündin beißt ab; ggf. abbinden + desinfizieren"}, {"id": "3.15", "chapter": "3", "q": "Bei welchen Anzeichen (Komplikationen) würden Sie den Tierarzt informieren?", "a": ["Palpation (Tag 21–28); Ultraschall (ab Tag 25) → Methode der Wahl; Relaxin-Test (ab Tag 25–30); Röntgen (ab Tag 45–50, Skelett sichtbar)", "bis Woche 5 normal; ab Woche 5–6 energie- und proteinreich (Welpen-/Aufzuchtfutter); mehrere kleine Mahlzeiten; kein Überfüttern", "Wie lange dauert die Trächtigkeit einer Hündin nach Eisprüngen durchschnittlich?; Ø 63 Tage (62–64 Tage)", "2 h starke Wehen ohne Welpe; 4 h Pause; grüner Ausfluss ohne Welpe; Fieber/Schwäche; feststeckender Welpe"], "correct": 3, "explain": "2 h starke Wehen ohne Welpe; 4 h Pause; grüner Ausfluss ohne Welpe; Fieber/Schwäche; feststeckender Welpe"}, {"id": "3.16", "chapter": "3", "q": "Sollten die Welpen bereits während des Geburtsvorgangs saugen?", "a": ["Gefahr, dass Welpen draußen geboren/verloren werden", "Ja, fördert Oxytocin/Wehen", "Oberkiefer länger", "Spreizbeinigkeit, flach liegend → früh therapierbar"], "correct": 1, "explain": "Ja, fördert Oxytocin/Wehen"}, {"id": "3.17", "chapter": "3", "q": "Woran können Sie das Ende der Geburt zuverlässig erkennen?", "a": ["Welpen ruhig, satt, tägliche Gewichtszunahme", "kriechen, saugen, schlafen, Wärmesuche", "eine Wehen mehr, Hündin ruhig, alle Plazenten draußen", "Wie lange dauert die Trächtigkeit einer Hündin nach Eisprüngen durchschnittlich?; Ø 63 Tage (62–64 Tage)"], "correct": 2, "explain": "eine Wehen mehr, Hündin ruhig, alle Plazenten draußen"}, {"id": "3.18", "chapter": "3", "q": "Welche körperliche Fehlbildung kann es bei Welpen geben?", "a": ["z. B. Gaumenspalte, Nabelbruch, Fehlstellungen, Afteratresie", "Progesteronabfall + Prostaglandine + Oxytocin → Wehenbeginn", "Welpe kann nicht saugen → Aspirationsgefahr", "Ja, fördert Oxytocin/Wehen"], "correct": 0, "explain": "z. B. Gaumenspalte, Nabelbruch, Fehlstellungen, Afteratresie"}, {"id": "3.19", "chapter": "3", "q": "Welche Aussage zur Gaumenspalte ist richtig?", "a": ["Welpe kann nicht saugen → Aspirationsgefahr", "ab 3.–4. Woche", "neonatal; Übergangsphase; Sozialisierung; Juvenilphase", "täglich (anfangs 2× täglich möglich)"], "correct": 0, "explain": "Welpe kann nicht saugen → Aspirationsgefahr"}, {"id": "3.2", "chapter": "3", "q": "Welche angeborenen Anomalien beim Welpen kann man direkt nach der Geburt feststellen?", "a": ["ca. Tag 14–16", "Gaumenspalte, Afterverschluss, Missbildungen, fehlende Reflexe", "2., 4., 6., 8. Woche", "neonatal; Übergangsphase; Sozialisierung; Juvenilphase"], "correct": 1, "explain": "Gaumenspalte, Afterverschluss, Missbildungen, fehlende Reflexe"}, {"id": "3.21", "chapter": "3", "q": "Was sind mögliche Anzeichen für Welpenerkrankungen in der Neugeborenenphase?", "a": ["4.–7. Monat", "abtrocknen; kräftig rubbeln; Atemwege freimachen; Wärme", "nicht saugen; schreien; kalt; Gewichtsverlust; Durchfall", "Kalziummangel der Hündin → Krämpfe → Notfall"], "correct": 2, "explain": "nicht saugen; schreien; kalt; Gewichtsverlust; Durchfall"}, {"id": "3.22", "chapter": "3", "q": "Welche Maßnahmen kann der Züchter treffen, um die Atmung bei lebensschwachen Welpen anzuregen?", "a": ["abtrocknen; kräftig rubbeln; Atemwege freimachen; Wärme", "Ja, fördert Oxytocin/Wehen", "1. Eröffnungsphase; 2. Austreibungsphase; 3. Nachgeburtsphase", "Kalziummangel der Hündin → Krämpfe → Notfall"], "correct": 0, "explain": "abtrocknen; kräftig rubbeln; Atemwege freimachen; Wärme"}, {"id": "3.23", "chapter": "3", "q": "Worauf ist bei der regelmäßigen Kontrolle der Welpen zu achten?", "a": ["Für jeden Welpen eine Plazenta", "ca. Tag 14–16", "Gewicht; Trinkverhalten; Temperatur; Vitalität", "täglich (anfangs 2× täglich möglich)"], "correct": 2, "explain": "Gewicht; Trinkverhalten; Temperatur; Vitalität"}, {"id": "3.24", "chapter": "3", "q": "Was wissen Sie über Eklampsie?", "a": ["Geruch, Tastsinn, Wärmeempfinden", "Gaumenspalte, Afterverschluss, Missbildungen, fehlende Reflexe", "z. B. Gaumenspalte, Nabelbruch, Fehlstellungen, Afteratresie", "Kalziummangel der Hündin → Krämpfe → Notfall"], "correct": 3, "explain": "Kalziummangel der Hündin → Krämpfe → Notfall"}, {"id": "3.25", "chapter": "3", "q": "Woran erkennt man, ob die Hündin ihre Welpen allein ernähren kann?", "a": ["täglich (anfangs 2× täglich möglich)", "innerhalb der ersten 12–24 h", "Ja, fördert Oxytocin/Wehen", "Welpen ruhig, satt, tägliche Gewichtszunahme"], "correct": 3, "explain": "Welpen ruhig, satt, tägliche Gewichtszunahme"}, {"id": "3.26", "chapter": "3", "q": "Was eignet sich als Muttermilchersatz?", "a": ["3.–6. Woche", "Kalziummangel der Hündin → Krämpfe → Notfall", "Ahnentafeln; Impfpass; Wurfmeldung; Gesundheitsnachweise; Chipnummern", "spezieller Welpenmilchersatz (keine Kuhmilch)"], "correct": 3, "explain": "spezieller Welpenmilchersatz (keine Kuhmilch)"}, {"id": "3.27", "chapter": "3", "q": "Wann sollen Welpen Kolostralmilch bekommen?", "a": ["innerhalb der ersten 12–24 h", "Welpen ruhig, satt, tägliche Gewichtszunahme", "Für jeden Welpen eine Plazenta", "spezieller Welpenmilchersatz (keine Kuhmilch)"], "correct": 0, "explain": "innerhalb der ersten 12–24 h"}, {"id": "3.28", "chapter": "3", "q": "Was ist Kostralmilch und welche Aussage dazu stimmt?", "a": ["ca. Tag 10–14", "ab 8 Wochen", "spezieller Welpenmilchersatz (keine Kuhmilch)", "Erstmilch mit Antikörpern"], "correct": 3, "explain": "Erstmilch mit Antikörpern"}, {"id": "3.29", "chapter": "3", "q": "Warum ist Kolostralmilch so wichtig für Welpen?", "a": ["passive Immunität", "Alle gleicher Anfangsbuchstabe (Wurfstabe)", "Unterkiefer länger", "ab 8 Wochen"], "correct": 0, "explain": "passive Immunität"}, {"id": "3.3", "chapter": "3", "q": "In welchen Zeitabständen erfolgt die Fütterung neugeborener Welpen mit Ersatzmilch?", "a": ["Gaumenspalte, Afterverschluss, Missbildungen, fehlende Reflexe", "Ja, fördert Oxytocin/Wehen", "alle 2–3 Stunden", "Kalziummangel der Hündin → Krämpfe → Notfall"], "correct": 2, "explain": "alle 2–3 Stunden"}, {"id": "3.31", "chapter": "3", "q": "Wann und wie oft sollten Welpen gewogen werden?", "a": ["täglich (anfangs 2× täglich möglich)", "Geruch, Tastsinn, Wärmeempfinden", "nicht saugen; schreien; kalt; Gewichtsverlust; Durchfall", "Atmung; Saugen; Wärme; Gewicht; Missbildungen"], "correct": 0, "explain": "täglich (anfangs 2× täglich möglich)"}, {"id": "3.32", "chapter": "3", "q": "Ab welchem Alter können Welpen hören?", "a": ["6–8, 12, 16 Wochen + 15 Monate (Grundimmunisierung)", "ca. Tag 14–16", "0–2 Wochen", "Für jeden Welpen eine Plazenta"], "correct": 1, "explain": "ca. Tag 14–16"}, {"id": "3.33", "chapter": "3", "q": "Wann öffnen sich die Augen der Welpen?", "a": ["neonatal; Übergangsphase; Sozialisierung; Juvenilphase", "ca. Tag 10–14", "Staupe, HCC, Parvo, Lepto ± Parainfluenza", "Geruch, Tastsinn, Wärmeempfinden"], "correct": 1, "explain": "ca. Tag 10–14"}, {"id": "3.34", "chapter": "3", "q": "Wann beginnt man mit  dem Zufüttern der Welpen?", "a": ["ab 3.–4. Woche", "ca. Tag 14–16", "Gefahr, dass Welpen draußen geboren/verloren werden", "Hündin beißt ab; ggf. abbinden + desinfizieren"], "correct": 0, "explain": "ab 3.–4. Woche"}, {"id": "3.35", "chapter": "3", "q": "Welche Sinne sind beim Welpen von Geburt an ausgeprägt?", "a": ["Erstmilch mit Antikörpern", "Geruch, Tastsinn, Wärmeempfinden", "ab 3.–4. Woche", "Kalziummangel der Hündin → Krämpfe → Notfall"], "correct": 1, "explain": "Geruch, Tastsinn, Wärmeempfinden"}, {"id": "3.36", "chapter": "3", "q": "Wann durchlaufen die Welpen die neonatale (vegetative) Phase?", "a": ["Unterkiefer länger", "Atmung; Saugen; Wärme; Gewicht; Missbildungen", "Hündin beißt ab; ggf. abbinden + desinfizieren", "0–2 Wochen"], "correct": 3, "explain": "0–2 Wochen"}, {"id": "3.37", "chapter": "3", "q": "Welche Sinne und Fähigkeiten der Welpen sind in der neonatalen Phase ausgeprägt?", "a": ["kriechen, saugen, schlafen, Wärmesuche", "ca. Tag 10–14", "Gewicht; Trinkverhalten; Temperatur; Vitalität", "Welpe kann nicht saugen → Aspirationsgefahr"], "correct": 0, "explain": "kriechen, saugen, schlafen, Wärmesuche"}, {"id": "3.38", "chapter": "3", "q": "Welche Phasen durchläuft ein Welpe in der Regel beim Züchter?", "a": ["neonatal; Übergangsphase; Sozialisierung; Juvenilphase", "spezieller Welpenmilchersatz (keine Kuhmilch)", "eine Wehen mehr, Hündin ruhig, alle Plazenten draußen", "täglich (anfangs 2× täglich möglich)"], "correct": 0, "explain": "neonatal; Übergangsphase; Sozialisierung; Juvenilphase"}, {"id": "3.39", "chapter": "3", "q": "Welcher Lebensabschnitt des Welpens wird als Sozialisierungsphase bezeichnet?", "a": ["Welpen ruhig, satt, tägliche Gewichtszunahme", "alle 2–3 Stunden", "ca. 3.–12. Woche", "Durchfall/Erbrechen"], "correct": 2, "explain": "ca. 3.–12. Woche"}, {"id": "3.4", "chapter": "3", "q": "In welchem Alter der Welpen brechen die Milchzähne durch?", "a": ["täglich (anfangs 2× täglich möglich)", "3.–6. Woche", "Staupe, HCC, Parvo, Lepto ± Parainfluenza", "ca. Tag 10–14"], "correct": 1, "explain": "3.–6. Woche"}, {"id": "3.41", "chapter": "3", "q": "Haben Milchzähne vollständige ausgebildete Zahnwurzeln?", "a": ["ca. 12–24 Stunden", "Welpe kann nicht saugen → Aspirationsgefahr", "nicht vollständig ausgebildet", "ab 3.–4. Woche"], "correct": 2, "explain": "nicht vollständig ausgebildet"}, {"id": "3.42", "chapter": "3", "q": "Welche Zähne sind im Milchgebiss des Hundes nicht angelegt?", "a": ["Molaren", "Ja → Tierarzt", "passive Immunität", "Oberkiefer länger"], "correct": 0, "explain": "Molaren"}, {"id": "3.43", "chapter": "3", "q": "Soll ein Hund mit frakturiertem (abgebrochenem) Milchzahn dem Tierarzt vorgestelllt werden?", "a": ["Erstmilch mit Antikörpern", "Ja → Tierarzt", "Oberkiefer länger", "Unterkiefer länger"], "correct": 1, "explain": "Ja → Tierarzt"}, {"id": "3.44", "chapter": "3", "q": "Was ist ein persistierender Milchzahn und welche Aussage trifft zu?", "a": ["Atmung; Saugen; Wärme; Gewicht; Missbildungen", "bleibt trotz Durchbruch → entfernen", "Ja → Tierarzt", "ca. Tag 14–16"], "correct": 1, "explain": "bleibt trotz Durchbruch → entfernen"}, {"id": "3.45", "chapter": "3", "q": "In welchem Alter findet der Zahnwechsel statt?", "a": ["Für jeden Welpen eine Plazenta", "4.–7. Monat", "0–2 Wochen", "2., 4., 6., 8. Woche"], "correct": 1, "explain": "4.–7. Monat"}, {"id": "3.46", "chapter": "3", "q": "Was ist ein Vorbiss?", "a": ["ca. Tag 10–14", "bleibt trotz Durchbruch → entfernen", "Ja, fördert Oxytocin/Wehen", "Unterkiefer länger"], "correct": 3, "explain": "Unterkiefer länger"}, {"id": "3.47", "chapter": "3", "q": "Was ist ein Rückbiss?", "a": ["Oberkiefer länger", "ab 8 Wochen", "ca. 3.–12. Woche", "Erstmilch mit Antikörpern"], "correct": 0, "explain": "Oberkiefer länger"}, {"id": "3.48", "chapter": "3", "q": "Welche Aussage zum Swimmer-Puppy-Syndrom stimmt?", "a": ["Ja, fördert Oxytocin/Wehen", "Spreizbeinigkeit, flach liegend → früh therapierbar", "eine Wehen mehr, Hündin ruhig, alle Plazenten draußen", "6–8, 12, 16 Wochen + 15 Monate (Grundimmunisierung)"], "correct": 1, "explain": "Spreizbeinigkeit, flach liegend → früh therapierbar"}, {"id": "3.49", "chapter": "3", "q": "Wann und in welchen Zeitabständen sind Welpen zu entwurmen?", "a": ["2., 4., 6., 8. Woche", "nicht saugen; schreien; kalt; Gewichtsverlust; Durchfall", "Spreizbeinigkeit, flach liegend → früh therapierbar", "Gaumenspalte, Afterverschluss, Missbildungen, fehlende Reflexe"], "correct": 0, "explain": "2., 4., 6., 8. Woche"}, {"id": "3.5", "chapter": "3", "q": "Welches Impfschema sieht die STIKO Vet (Ständige Impfkommission) vor?", "a": ["ca. 3.–12. Woche", "6–8, 12, 16 Wochen + 15 Monate (Grundimmunisierung)", "kriechen, saugen, schlafen, Wärmesuche", "Alle gleicher Anfangsbuchstabe (Wurfstabe)"], "correct": 1, "explain": "6–8, 12, 16 Wochen + 15 Monate (Grundimmunisierung)"}, {"id": "3.51", "chapter": "3", "q": "Wogegen werden die Welpen mit 8 Wochen geimpft?", "a": ["Staupe, HCC, Parvo, Lepto ± Parainfluenza", "nicht vollständig ausgebildet", "Kalziummangel der Hündin → Krämpfe → Notfall", "2., 4., 6., 8. Woche"], "correct": 0, "explain": "Staupe, HCC, Parvo, Lepto ± Parainfluenza"}, {"id": "3.52", "chapter": "3", "q": "Unter welchen Voraussetzungen dürfen Welpen frühestens abgegeben werden?", "a": ["ab 8 Wochen", "bleibt trotz Durchbruch → entfernen", "0–2 Wochen", "Progesteronabfall + Prostaglandine + Oxytocin → Wehenbeginn"], "correct": 0, "explain": "ab 8 Wochen"}, {"id": "3.53", "chapter": "3", "q": "Welche Unterlagen sind vom Züchter bei der Wurfabnahme vorzulegen?", "a": ["z. B. Gaumenspalte, Nabelbruch, Fehlstellungen, Afteratresie", "abtrocknen; kräftig rubbeln; Atemwege freimachen; Wärme", "ca. 3.–12. Woche", "Ahnentafeln; Impfpass; Wurfmeldung; Gesundheitsnachweise; Chipnummern"], "correct": 3, "explain": "Ahnentafeln; Impfpass; Wurfmeldung; Gesundheitsnachweise; Chipnummern"}, {"id": "4.1", "chapter": "4", "q": "Wie ist der Erbgang bei HD?", "a": ["Polygen / multifaktoriell; → mehrere Gene + Umweltfaktoren (Fütterung, Wachstum, Bewegung); Was bedeutet „polygen“?; mehrere Gene sind beteiligt (nicht nur ein einzelnes); jedes Gen trägt kleine Teilwirkungen zum Risiko bei; Was bedeutet „multifaktoriell“?; Zusätzlich zur Genetik wirken Umweltfaktoren:; Wachstumsgeschwindigkeit; Energie-/Calciumüberversorgung; Übergewicht; Belastung/Bewegung; Konsequenz; kein einfacher dominant/rezessiver Erbgang; gesunde Eltern können kranke Welpen haben; kranke Eltern können gesunde Welpen haben; daher: Zuchtwertschätzung / Röntgenbewertung statt Gentest; Merksatz; 👉 Viele Gene + Umwelt = kein Mendel-Erbgang", "genetisch bedingt; häufig an der Hinterhand unerwünscht; kann funktionell oder locker anliegend sein; teils rasseabhängig erwünscht; (Kurz: angeborenes Merkmal, vererbbar)", "Dominant:; Schwarz (B); Pigmentausprägung E (Farbe sichtbar); Rezessiv:; Braun/chocolate (b); Gelb (e, verhindert dunkles Pigment)", "bbEE oder bbEe; → immer bb, aber E oder e möglich"], "correct": 0, "explain": "Polygen / multifaktoriell; → mehrere Gene + Umweltfaktoren (Fütterung, Wachstum, Bewegung); Was bedeutet „polygen“?; mehrere Gene sind beteiligt (nicht nur ein einzelnes); jedes Gen trägt kleine Teilwirkungen zum Risiko bei; Was bedeutet „multifaktoriell“?; Zusätzlich zur Genetik wirken Umweltfaktoren:; Wachstumsgeschwindigkeit; Energie-/Calciumüberversorgung; Übergewicht; Belastung/Bewegung; Konsequenz; kein einfacher dominant/rezessiver Erbgang; gesunde Eltern können kranke Welpen haben; kranke Eltern können gesunde Welpen haben; daher: Zuchtwertschätzung / Röntgenbewertung statt Gentest; Merksatz; 👉 Viele Gene + Umwelt = kein Mendel-Erbgang"}, {"id": "4.2", "chapter": "4", "q": "Wie ist der Erbgang bei der prcd-Form der Progressiven Retina Altrophy(PRA)?", "a": ["Autosomal-rezessiv; Bedeutung:; autosomal = nicht geschlechtsgebunden; rezessiv = Krankheit nur bei zwei defekten Allelen; Genotypen:; Genotyp; AA; Aa; aa; Zuchtlogik:; Träger × Träger → 25 % krank; Träger sind äußerlich gesund → daher Gentest wichtig; Merksatz; 👉 Nur homozygot krank → klassischer rezessiver Defekt", "Polygen / multifaktoriell; → mehrere Gene + Umweltfaktoren (Fütterung, Wachstum, Bewegung); Was bedeutet „polygen“?; mehrere Gene sind beteiligt (nicht nur ein einzelnes); jedes Gen trägt kleine Teilwirkungen zum Risiko bei; Was bedeutet „multifaktoriell“?; Zusätzlich zur Genetik wirken Umweltfaktoren:; Wachstumsgeschwindigkeit; Energie-/Calciumüberversorgung; Übergewicht; Belastung/Bewegung; Konsequenz; kein einfacher dominant/rezessiver Erbgang; gesunde Eltern können kranke Welpen haben; kranke Eltern können gesunde Welpen haben; daher: Zuchtwertschätzung / Röntgenbewertung statt Gentest; Merksatz; 👉 Viele Gene + Umwelt = kein Mendel-Erbgang", "Alle autosomal-rezessiv; Diese Merkmale beruhen jeweils auf:; einem einzelnen Gen (monogen); Funktionsverlustmutation; Warum rezessiv?; Ein funktionierendes Allel reicht aus → Träger sind gesund; Erst zwei defekte Kopien → Krankheit/Phänotyp; Beispiele:; Merkmal; EIC; HNPK; prcd-PRA; Langhaar; Typisches Kreuzungsschema:; Träger × Träger:; 25 % frei; 50 % Träger; 25 % betroffen; Zuchtpraxis:; 👉 DNA-Test möglich und sinnvoll, da klarer Mendel-Erbgang", "genetisch bedingt; häufig an der Hinterhand unerwünscht; kann funktionell oder locker anliegend sein; teils rasseabhängig erwünscht; (Kurz: angeborenes Merkmal, vererbbar)"], "correct": 0, "explain": "Autosomal-rezessiv; Bedeutung:; autosomal = nicht geschlechtsgebunden; rezessiv = Krankheit nur bei zwei defekten Allelen; Genotypen:; Genotyp; AA; Aa; aa; Zuchtlogik:; Träger × Träger → 25 % krank; Träger sind äußerlich gesund → daher Gentest wichtig; Merksatz; 👉 Nur homozygot krank → klassischer rezessiver Defekt"}, {"id": "4.3", "chapter": "4", "q": "Wie ist der Erbgang bei EIC, HNPK, prcd-PRA und Lang-/ Kurzhaarigkeit?", "a": ["Mögliche Genotypen:; BBEE; BBEe; BbEE; BbEe; → schwarz, evtl. Träger von braun und/oder gelb", "Alle autosomal-rezessiv; Diese Merkmale beruhen jeweils auf:; einem einzelnen Gen (monogen); Funktionsverlustmutation; Warum rezessiv?; Ein funktionierendes Allel reicht aus → Träger sind gesund; Erst zwei defekte Kopien → Krankheit/Phänotyp; Beispiele:; Merkmal; EIC; HNPK; prcd-PRA; Langhaar; Typisches Kreuzungsschema:; Träger × Träger:; 25 % frei; 50 % Träger; 25 % betroffen; Zuchtpraxis:; 👉 DNA-Test möglich und sinnvoll, da klarer Mendel-Erbgang", "bbEE oder bbEe; → immer bb, aber E oder e möglich", "Gezielte Verpaarung verwandter Tiere, um bestimmte Eigenschaften einer Linie zu festigen; (milde Form der Inzucht)"], "correct": 1, "explain": "Alle autosomal-rezessiv; Diese Merkmale beruhen jeweils auf:; einem einzelnen Gen (monogen); Funktionsverlustmutation; Warum rezessiv?; Ein funktionierendes Allel reicht aus → Träger sind gesund; Erst zwei defekte Kopien → Krankheit/Phänotyp; Beispiele:; Merkmal; EIC; HNPK; prcd-PRA; Langhaar; Typisches Kreuzungsschema:; Träger × Träger:; 25 % frei; 50 % Träger; 25 % betroffen; Zuchtpraxis:; 👉 DNA-Test möglich und sinnvoll, da klarer Mendel-Erbgang"}, {"id": "4.4", "chapter": "4", "q": "Was sind rezessive und was sind dominante Erbanlagen bezüglich der Fellfarbe?", "a": ["Dominant:; Schwarz (B); Pigmentausprägung E (Farbe sichtbar); Rezessiv:; Braun/chocolate (b); Gelb (e, verhindert dunkles Pigment)", "Gezielte Verpaarung verwandter Tiere, um bestimmte Eigenschaften einer Linie zu festigen; (milde Form der Inzucht)", "Verpaarung genetisch möglichst unverwandter Tiere; → Erhöhung der genetischen Vielfalt", "Nein; → Vererbung über beide Geschlechter möglich (Hündinnen können Träger sein)"], "correct": 0, "explain": "Dominant:; Schwarz (B); Pigmentausprägung E (Farbe sichtbar); Rezessiv:; Braun/chocolate (b); Gelb (e, verhindert dunkles Pigment)"}, {"id": "4.5", "chapter": "4", "q": "Welche Farben zeigen und tragen die Welpen einer Verpaarung reinerbig gelb mit reinerbig schwarz?", "a": ["Genetik:; gelb = ee; schwarz (reinerbig) = EE; Ergebnis:; alle Welpen schwarz (Ee); tragen gelb", "Dominant:; Schwarz (B); Pigmentausprägung E (Farbe sichtbar); Rezessiv:; Braun/chocolate (b); Gelb (e, verhindert dunkles Pigment)", "Beide Eltern:; tragen braun (Bb); → also heterozygot Bb", "Mögliche Genotypen:; BBEE; BBEe; BbEE; BbEe; → schwarz, evtl. Träger von braun und/oder gelb"], "correct": 0, "explain": "Genetik:; gelb = ee; schwarz (reinerbig) = EE; Ergebnis:; alle Welpen schwarz (Ee); tragen gelb"}, {"id": "4.6", "chapter": "4", "q": "Was könnte das Ergebnis einer genetischen Farbbestimmung bei einem schwarzen Labrador sein?", "a": ["Dominant:; Schwarz (B); Pigmentausprägung E (Farbe sichtbar); Rezessiv:; Braun/chocolate (b); Gelb (e, verhindert dunkles Pigment)", "Mögliche Genotypen:; BBEE; BBEe; BbEE; BbEe; → schwarz, evtl. Träger von braun und/oder gelb", "genetisch bedingt; häufig an der Hinterhand unerwünscht; kann funktionell oder locker anliegend sein; teils rasseabhängig erwünscht; (Kurz: angeborenes Merkmal, vererbbar)", "Genetik:; gelb = ee; schwarz (reinerbig) = EE; Ergebnis:; alle Welpen schwarz (Ee); tragen gelb"], "correct": 1, "explain": "Mögliche Genotypen:; BBEE; BBEe; BbEE; BbEe; → schwarz, evtl. Träger von braun und/oder gelb"}, {"id": "4.7", "chapter": "4", "q": "Welche Farb-Gen Kombination sind bei einem chocolate Labrador möglich?", "a": ["bbEE oder bbEe; → immer bb, aber E oder e möglich", "Dominant:; Schwarz (B); Pigmentausprägung E (Farbe sichtbar); Rezessiv:; Braun/chocolate (b); Gelb (e, verhindert dunkles Pigment)", "genetisch bedingt; häufig an der Hinterhand unerwünscht; kann funktionell oder locker anliegend sein; teils rasseabhängig erwünscht; (Kurz: angeborenes Merkmal, vererbbar)", "Gezielte Verpaarung verwandter Tiere, um bestimmte Eigenschaften einer Linie zu festigen; (milde Form der Inzucht)"], "correct": 0, "explain": "bbEE oder bbEe; → immer bb, aber E oder e möglich"}, {"id": "4.8", "chapter": "4", "q": "Was weiß man sicher, wenn bei der Anpaarung zweier schwarzer Labradore chocolate Welpen geboren wurden?", "a": ["Dominant:; Schwarz (B); Pigmentausprägung E (Farbe sichtbar); Rezessiv:; Braun/chocolate (b); Gelb (e, verhindert dunkles Pigment)", "Nein; → Vererbung über beide Geschlechter möglich (Hündinnen können Träger sein)", "Mögliche Genotypen:; BBEE; BBEe; BbEE; BbEe; → schwarz, evtl. Träger von braun und/oder gelb", "Beide Eltern:; tragen braun (Bb); → also heterozygot Bb"], "correct": 3, "explain": "Beide Eltern:; tragen braun (Bb); → also heterozygot Bb"}, {"id": "4.9", "chapter": "4", "q": "Was versteht man unter dem Begriff \" Linienzucht\"?", "a": ["Nein; → Vererbung über beide Geschlechter möglich (Hündinnen können Träger sein)", "bbEE oder bbEe; → immer bb, aber E oder e möglich", "Genetik:; gelb = ee; schwarz (reinerbig) = EE; Ergebnis:; alle Welpen schwarz (Ee); tragen gelb", "Gezielte Verpaarung verwandter Tiere, um bestimmte Eigenschaften einer Linie zu festigen; (milde Form der Inzucht)"], "correct": 3, "explain": "Gezielte Verpaarung verwandter Tiere, um bestimmte Eigenschaften einer Linie zu festigen; (milde Form der Inzucht)"}, {"id": "4.1", "chapter": "4", "q": "Was ist \"outcross\"?", "a": ["Dominant:; Schwarz (B); Pigmentausprägung E (Farbe sichtbar); Rezessiv:; Braun/chocolate (b); Gelb (e, verhindert dunkles Pigment)", "bbEE oder bbEe; → immer bb, aber E oder e möglich", "Verpaarung genetisch möglichst unverwandter Tiere; → Erhöhung der genetischen Vielfalt", "Beide Eltern:; tragen braun (Bb); → also heterozygot Bb"], "correct": 2, "explain": "Verpaarung genetisch möglichst unverwandter Tiere; → Erhöhung der genetischen Vielfalt"}, {"id": "4.11", "chapter": "4", "q": "Wird das geschlechtsgebundene Merkmal Kryptochismus nur vom betroffenen Geschlecht vererbet?", "a": ["Mögliche Genotypen:; BBEE; BBEe; BbEE; BbEe; → schwarz, evtl. Träger von braun und/oder gelb", "Beide Eltern:; tragen braun (Bb); → also heterozygot Bb", "Dominant:; Schwarz (B); Pigmentausprägung E (Farbe sichtbar); Rezessiv:; Braun/chocolate (b); Gelb (e, verhindert dunkles Pigment)", "Nein; → Vererbung über beide Geschlechter möglich (Hündinnen können Träger sein)"], "correct": 3, "explain": "Nein; → Vererbung über beide Geschlechter möglich (Hündinnen können Träger sein)"}, {"id": "4.12", "chapter": "4", "q": "Wolf- bzw. Afterkralle - Welche Aussage stimmt?", "a": ["Genetik:; gelb = ee; schwarz (reinerbig) = EE; Ergebnis:; alle Welpen schwarz (Ee); tragen gelb", "bbEE oder bbEe; → immer bb, aber E oder e möglich", "genetisch bedingt; häufig an der Hinterhand unerwünscht; kann funktionell oder locker anliegend sein; teils rasseabhängig erwünscht; (Kurz: angeborenes Merkmal, vererbbar)", "Mögliche Genotypen:; BBEE; BBEe; BbEE; BbEe; → schwarz, evtl. Träger von braun und/oder gelb"], "correct": 2, "explain": "genetisch bedingt; häufig an der Hinterhand unerwünscht; kann funktionell oder locker anliegend sein; teils rasseabhängig erwünscht; (Kurz: angeborenes Merkmal, vererbbar)"}];
 
-let i=0,score=0,answered=false;
-const q=document.getElementById("q");
-const aDiv=document.getElementById("answers");
-const s=document.getElementById("score");
+const STORAGE_KEY = "labrador_lernapp_v2";
 
-function load(){
-answered=false;
-const item=questions[i];
-q.textContent=item.q;
-aDiv.innerHTML="";
-item.a.forEach((t,idx)=>{
-const b=document.createElement("button");
-b.textContent=t;
-b.onclick=()=>check(idx,b);
-aDiv.appendChild(b);
-});
-s.textContent=`Punkte: ${score}`;
+function defaultUserState(){
+  return { perQ: {}, exams: [] };
 }
 
-function check(idx,btn){
-if(answered)return;
-answered=true;
-const item=questions[i];
-[...aDiv.children].forEach((b,k)=>{
-b.disabled=true;
-if(k===item.c)b.classList.add("correct");
-});
-if(idx===item.c)score++;
-else btn.classList.add("wrong");
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return { users: {"Gast": defaultUserState()}, activeUser:"Gast" };
+    const s = JSON.parse(raw);
+    if(!s.users || !s.activeUser) throw new Error("bad");
+    return s;
+  }catch{
+    return { users: {"Gast": defaultUserState()}, activeUser:"Gast" };
+  }
 }
 
-document.getElementById("next").onclick=()=>{
-i++;
-if(i>=questions.length){alert(`Fertig! ${score}/${questions.length}`);i=0;score=0;}
-load();
-};
+let state = loadState();
 
-load();
+function saveState(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function ensureUser(name){
+  if(!state.users[name]) state.users[name] = defaultUserState();
+}
+
+function activeUser(){ return state.activeUser; }
+function userData(){ return state.users[activeUser()]; }
+
+function escapeHtml(s){
+  return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
+
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+
+function filterQuestions(chapter, wrongOnly, mode){
+  const u = userData();
+  let list = QUESTIONS.slice();
+  if(chapter !== "all") list = list.filter(x => x.chapter === chapter);
+
+  if(mode === "learn" && wrongOnly){
+    list = list.filter(x => {
+      const st = u.perQ[x.id];
+      return st && (st.wrong||0) > 0;
+    });
+  }
+  return list;
+}
+
+function recordAttempt(qid, isCorrect){
+  const u = userData();
+  if(!u.perQ[qid]) u.perQ[qid] = {seen:0, correct:0, wrong:0, lastTs:0};
+  u.perQ[qid].seen += 1;
+  if(isCorrect) u.perQ[qid].correct += 1;
+  else u.perQ[qid].wrong += 1;
+  u.perQ[qid].lastTs = Date.now();
+  saveState();
+}
+
+function updateStatsUI(){
+  const u = userData();
+  const perChap = {"1":{seen:0, correct:0}, "2":{seen:0, correct:0}, "3":{seen:0, correct:0}, "4":{seen:0, correct:0}};
+  let totalSeen=0, totalCorrect=0;
+
+  for(const qid in u.perQ){
+    const st = u.perQ[qid];
+    const q = QUESTIONS.find(x => x.id === qid);
+    if(!q) continue;
+    totalSeen += st.seen||0;
+    totalCorrect += st.correct||0;
+    perChap[q.chapter].seen += st.seen||0;
+    perChap[q.chapter].correct += st.correct||0;
+  }
+
+  const totalRate = totalSeen ? Math.round((totalCorrect/totalSeen)*100) : 0;
+  document.getElementById("progressPill").textContent = `${activeUser()} · Gesamt: ${totalCorrect}/${totalSeen} (${totalRate}%)`;
+
+  const rows = ["1","2","3","4"].map(ch => {
+    const s = perChap[ch];
+    const rate = s.seen ? Math.round((s.correct/s.seen)*100) : 0;
+    return `<tr>
+      <td>Kapitel ${ch}</td>
+      <td class="right">${s.seen}</td>
+      <td class="right">${s.correct}</td>
+      <td class="right">${rate}%</td>
+    </tr>`;
+  }).join("");
+
+  document.getElementById("statsBody").innerHTML = rows;
+}
+
+function refreshUserSelect(){
+  const sel = document.getElementById("userSelect");
+  const names = Object.keys(state.users).sort((a,b)=>a.localeCompare(b,"de"));
+  sel.innerHTML = names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("");
+  sel.value = state.activeUser;
+}
+
+let session = null;
+// session = {mode, chapter, list, idx, score, answered, log}
+
+function startSession(){
+  const mode = document.getElementById("modeSelect").value;
+  const chapter = document.getElementById("chapterSelect").value;
+  const wrongOnly = document.getElementById("wrongOnlySelect").value === "1";
+  const count = Math.max(5, Math.min(200, parseInt(document.getElementById("examCount").value||"40",10)));
+
+  let pool = filterQuestions(chapter, wrongOnly, mode);
+
+  if(pool.length === 0){
+    alert("Keine Fragen im Filter. Tipp: 'Nur falsch beantwortete' deaktivieren oder Kapitel ändern.");
+    return;
+  }
+
+  if(mode === "exam"){
+    pool = shuffle(pool).slice(0, Math.min(count, pool.length));
+  } else {
+    pool = shuffle(pool);
+  }
+
+  session = {mode, chapter, list: pool, idx:0, score:0, answered:false, log: []};
+
+  document.getElementById("userCard").style.display = "none";
+  document.getElementById("resultCard").style.display = "none";
+  document.getElementById("quizCard").style.display = "block";
+
+  renderQuestion();
+}
+
+function renderQuestion(){
+  const item = session.list[session.idx];
+  session.answered = false;
+
+  document.getElementById("modePill").textContent = session.mode === "learn" ? "Lernmodus" : "Prüfungsmodus";
+  document.getElementById("qPill").textContent = `Frage ${session.idx+1} / ${session.list.length}`;
+  document.getElementById("scorePill").textContent =
+    session.mode === "learn" ? `Punkte: ${session.score}` : `Antworten: ${session.idx} / ${session.list.length}`;
+
+  document.getElementById("questionText").textContent = item.q;
+  document.getElementById("chapterTag").textContent = `Kapitel ${item.chapter}`;
+  document.getElementById("qidTag").textContent = `ID: ${item.id}`;
+
+  const fb = document.getElementById("feedback");
+  fb.style.display = "none";
+  fb.textContent = "";
+
+  const ans = document.getElementById("answers");
+  ans.innerHTML = "";
+  item.a.forEach((txt, idx) => {
+    const b = document.createElement("button");
+    b.type="button";
+    b.textContent = txt;
+    b.addEventListener("click", () => chooseAnswer(idx, b));
+    ans.appendChild(b);
+  });
+
+  const nextBtn = document.getElementById("nextBtn");
+  nextBtn.textContent = (session.idx === session.list.length - 1) ? (session.mode==="exam" ? "Abgeben" : "Fertig") : "Nächste Frage";
+}
+
+function chooseAnswer(idx, btn){
+  if(session.answered) return;
+  session.answered = true;
+
+  const item = session.list[session.idx];
+  const correctIdx = item.correct;
+  const isCorrect = idx === correctIdx;
+
+  const buttons = document.querySelectorAll("#answers button");
+  buttons.forEach((b,i) => {
+    b.disabled = true;
+    if(i === correctIdx) b.classList.add("correct");
+  });
+  if(!isCorrect) btn.classList.add("wrong");
+
+  session.log.push({qid:item.id, chosen:idx, correctIdx, isCorrect});
+  recordAttempt(item.id, isCorrect);
+
+  if(session.mode === "learn"){
+    if(isCorrect) session.score += 1;
+    document.getElementById("scorePill").textContent = `Punkte: ${session.score}`;
+
+    const fb = document.getElementById("feedback");
+    fb.style.display = "block";
+    fb.textContent = (isCorrect ? "✅ Richtig. " : "❌ Falsch. ") + (item.explain || "");
+  } else {
+    document.getElementById("scorePill").textContent = `Antworten: ${session.idx+1} / ${session.list.length}`;
+  }
+}
+
+function next(){
+  if(!session) return;
+  if(!session.answered){
+    const fb = document.getElementById("feedback");
+    fb.style.display="block";
+    fb.textContent="Bitte zuerst eine Antwort auswählen.";
+    return;
+  }
+
+  if(session.idx >= session.list.length - 1){
+    if(session.mode === "exam") finishExam();
+    else {
+      alert(`Fertig! Ergebnis: ${session.score} / ${session.list.length}`);
+      endToMenu();
+    }
+    return;
+  }
+
+  session.idx += 1;
+  renderQuestion();
+}
+
+function finishExam(){
+  const total = session.list.length;
+  const score = session.log.filter(x=>x.isCorrect).length;
+
+  const u = userData();
+  u.exams.push({ts:Date.now(), chapter:session.chapter, count:total, score, total});
+  saveState();
+
+  document.getElementById("quizCard").style.display="none";
+  document.getElementById("resultCard").style.display="block";
+  document.getElementById("examSummary").textContent = `${score} / ${total} (${Math.round((score/total)*100)}%)`;
+
+  const wrong = session.log.filter(x=>!x.isCorrect);
+  const right = session.log.filter(x=>x.isCorrect);
+
+  const wrongHtml = wrong.length ? `
+    <h3 style="margin:0 0 10px 0;">Falsch beantwortet (${wrong.length})</h3>
+    <table class="table">
+      <thead><tr><th>ID</th><th>Frage</th><th>Deine Antwort</th><th>Richtig</th></tr></thead>
+      <tbody>
+        ${wrong.map(w => {
+          const q = QUESTIONS.find(x=>x.id===w.qid);
+          return `<tr>
+            <td>${escapeHtml(w.qid)}</td>
+            <td>${escapeHtml(q.q)}</td>
+            <td>${escapeHtml(q.a[w.chosen])}</td>
+            <td>${escapeHtml(q.a[w.correctIdx])}</td>
+          </tr>`;
+        }).join("")}
+      </tbody>
+    </table>
+  ` : `<p>Alles richtig – stark.</p>`;
+
+  const rightHtml = `
+    <div class="hr"></div>
+    <details>
+      <summary>Richtig beantwortet (${right.length}) anzeigen</summary>
+      <table class="table">
+        <thead><tr><th>ID</th><th>Frage</th><th>Richtig</th></tr></thead>
+        <tbody>
+          ${right.map(r => {
+            const q = QUESTIONS.find(x=>x.id===r.qid);
+            return `<tr>
+              <td>${escapeHtml(r.qid)}</td>
+              <td>${escapeHtml(q.q)}</td>
+              <td>${escapeHtml(q.a[r.correctIdx])}</td>
+            </tr>`;
+          }).join("")}
+        </tbody>
+      </table>
+    </details>
+  `;
+
+  document.getElementById("resultDetails").innerHTML = wrongHtml + rightHtml;
+
+  const reviewBtn = document.getElementById("reviewWrongBtn");
+  reviewBtn.disabled = wrong.length === 0;
+  reviewBtn.onclick = () => {
+    const ids = new Set(wrong.map(x=>x.qid));
+    const pool = QUESTIONS.filter(x=>ids.has(x.id));
+    session = {mode:"learn", chapter:"custom", list:shuffle(pool), idx:0, score:0, answered:false, log:[]};
+    document.getElementById("resultCard").style.display="none";
+    document.getElementById("quizCard").style.display="block";
+    renderQuestion();
+  };
+}
+
+function endToMenu(){
+  session = null;
+  document.getElementById("quizCard").style.display="none";
+  document.getElementById("resultCard").style.display="none";
+  document.getElementById("userCard").style.display="block";
+  updateStatsUI();
+}
+
+function exportData(){
+  const data = JSON.stringify(state, null, 2);
+  const blob = new Blob([data], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "labrador-lernapp-backup.json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function importData(){
+  const inp = document.createElement("input");
+  inp.type="file";
+  inp.accept="application/json";
+  inp.onchange = () => {
+    const f = inp.files && inp.files[0];
+    if(!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try{
+        const obj = JSON.parse(String(r.result));
+        if(!obj.users || !obj.activeUser) throw new Error("Ungültiges Backup");
+        state = obj;
+        for(const name of Object.keys(state.users)) ensureUser(name);
+        if(!state.users[state.activeUser]) state.activeUser = Object.keys(state.users)[0] || "Gast";
+        saveState();
+        refreshUserSelect();
+        updateStatsUI();
+        alert("Import erfolgreich.");
+      }catch(e){ alert("Import fehlgeschlagen: " + (e?.message||e)); }
+    };
+    r.readAsText(f);
+  };
+  inp.click();
+}
+
+function init(){
+  for(const name of Object.keys(state.users)) ensureUser(name);
+  if(!state.users[state.activeUser]) state.activeUser = Object.keys(state.users)[0] || "Gast";
+
+  refreshUserSelect();
+  updateStatsUI();
+
+  document.getElementById("userSelect").addEventListener("change", (e) => {
+    state.activeUser = e.target.value;
+    saveState();
+    updateStatsUI();
+  });
+
+  document.getElementById("addUserBtn").addEventListener("click", () => {
+    const name = (document.getElementById("newUser").value||"").trim();
+    if(!name) return alert("Bitte Namen eingeben.");
+    if(state.users[name]) return alert("Benutzer existiert bereits.");
+    ensureUser(name);
+    state.activeUser = name;
+    document.getElementById("newUser").value = "";
+    saveState();
+    refreshUserSelect();
+    updateStatsUI();
+  });
+
+  document.getElementById("deleteUserBtn").addEventListener("click", () => {
+    const name = activeUser();
+    if(Object.keys(state.users).length <= 1) return alert("Mindestens ein Benutzer muss vorhanden sein.");
+    if(!confirm(`Benutzer "${name}" wirklich löschen?`)) return;
+    delete state.users[name];
+    state.activeUser = Object.keys(state.users)[0];
+    saveState();
+    refreshUserSelect();
+    updateStatsUI();
+  });
+
+  document.getElementById("resetProgressBtn").addEventListener("click", () => {
+    const name = activeUser();
+    if(!confirm(`Fortschritt von "${name}" wirklich zurücksetzen?`)) return;
+    state.users[name] = defaultUserState();
+    saveState();
+    updateStatsUI();
+    alert("Zurückgesetzt.");
+  });
+
+  document.getElementById("exportBtn").addEventListener("click", exportData);
+  document.getElementById("importBtn").addEventListener("click", importData);
+
+  document.getElementById("startBtn").addEventListener("click", startSession);
+  document.getElementById("nextBtn").addEventListener("click", next);
+  document.getElementById("quitBtn").addEventListener("click", () => {
+    if(confirm("Session beenden und zurück ins Menü?")) endToMenu();
+  });
+  document.getElementById("backToMenuBtn").addEventListener("click", endToMenu);
+
+  document.getElementById("modeSelect").addEventListener("change", () => {
+    const m = document.getElementById("modeSelect").value;
+    document.getElementById("examCount").disabled = (m !== "exam");
+    document.getElementById("wrongOnlySelect").disabled = (m !== "learn");
+  });
+  document.getElementById("modeSelect").dispatchEvent(new Event("change"));
+}
+
+init();
 </script>
-
 </body>
 </html>
